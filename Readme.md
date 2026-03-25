@@ -1,16 +1,72 @@
-# React + Vite
+# Eyra — Your Eyes Are Your Voice
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**Eyra** is a modern, web-based Augmentative and Alternative Communication (AAC) application designed specifically for patients with ALS and severe motor disabilities. 
 
-Currently, two official plugins are available:
+By leveraging standard webcams and advanced computer vision, Eyra allows users to compose words, expand them into full sentences using an onboard LLM, and synthesize speech—entirely through natural eye movements.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Hardware-Free Eye Tracking:** Powered by `WebGazer.js` running entirely in the browser. No expensive, specialized eye-tracking hardware required.
+- **Progressive Dwell Interactions:** Navigate the interface completely hands-free. Staring at a zone or letter initiates a 1.5-second dwell timer with crisp visual feedback (progress bars and rings).
+- **Intelligent Sentence Expansion:** Don't type every letter. Simply gaze at shorthand characters and Eyra's integrated LLM expands them into complete, context-aware sentences automatically.
+- **Text-to-Speech (TTS):** The vivid blue **SPEAK** button utilizes the browser's native `speechSynthesis` API to immediately vocalize the generated sentence.
+- **Professional, Accessible UI:** 
+  - A clean, high-contrast structural interface inspired by modern design systems like Linear and Vercel.
+  - Interactive details like a breathing dot-grid background, shimmering text effects, layered drop shadows, and a logo pupil that tracks your gaze.
+  - Grouped quadrants (A-F, G-M, N-T, U-Z) color-coded for distinct cognitive mapping.
 
-## Expanding the ESLint configuration
+## Sustainable Development Goals (SDGs)
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Eyra is built to actively contribute to the United Nations SDGs:
+- **SDG 3:** Good Health and Well-being
+- **SDG 10:** Reduced Inequalities
+
+---
+
+## Getting Started
+
+### Prerequisites
+Make sure you have Node.js and `npm` installed.
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/arj-co/Tesseract.git
+   cd Tesseract
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+4. Open your browser to `http://localhost:5173` (ensure you allow webcam access when prompted).
+
+---
+
+## How It Works
+
+1. **Calibration:** Upon loading, WebGazer initializes the webcam. 
+2. **Selection:** Look at one of the four main zone cards to open its respective letter grid. 
+3. **Typing:** Fix your gaze on a specific letter. The visual ring will fill up, selecting the letter when complete. Repeat for your desired shorthand.
+4. **Expansion:** Once input halts, the LLM takes your shorthand buffer and predicts the most likely full sentence. 
+5. **Vocalization:** Dwell on the "SPEAK" button to clear the buffer and narrate the expanded sentence.
+
+## Tech Stack
+
+- **Framework:** [React 18](https://reactjs.org/) (via [Vite](https://vitejs.dev/))
+- **Styling:** [Tailwind CSS](https://tailwindcss.com/)
+- **Eye-Tracking Engine:** [WebGazer.js](https://webgazer.cs.brown.edu/)
+- **AI Expansion:** Large Language Model API Integration
+- **Speech Synthesis:** Web Speech API
+
+---
+*Eyra was built to bridge the communication gap, providing independence, dignity, and a voice back to those who need it most.*
