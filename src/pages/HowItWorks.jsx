@@ -120,7 +120,7 @@ export default function HowItWorks() {
         <div className="max-w-7xl mx-auto px-6 text-center">
           <h2 className="font-serif text-3xl font-bold mb-10">Built With</h2>
           <div className="flex flex-wrap justify-center gap-4">
-            {['React', 'WebGazer.js', 'Gemini 2.5 Flash', 'Web Speech API', 'GitHub Pages', 'Tailwind CSS'].map(tech => (
+            {['React', 'WebGazer.js', 'Gemini 2.5 Flash', 'Web Speech API', 'Vercel', 'Tailwind CSS'].map(tech => (
               <div key={tech} className="bg-white/10 px-6 py-3 rounded-full font-semibold border border-white/20 hover:bg-white/20 transition-colors">
                 {tech}
               </div>

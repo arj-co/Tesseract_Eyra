@@ -12,8 +12,23 @@ export default function Landing() {
       <section className="flex-1 w-full max-w-7xl mx-auto px-6 py-20 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Left Column */}
         <div className="space-y-8">
-          <h1 className="font-serif font-bold text-6xl text-deepNavy leading-tight">
-            Your eyes are your voice.
+          <h1 className="font-serif font-bold text-6xl text-deepNavy leading-tight relative">
+            <style>{`
+              @keyframes marker-highlight {
+                0% { background-size: 0% 0.35em; }
+                100% { background-size: 100% 0.35em; }
+              }
+            `}</style>
+            <span 
+              className="inline bg-left-bottom bg-no-repeat pb-1"
+              style={{
+                backgroundImage: 'linear-gradient(to right, rgba(26, 115, 232, 0.4), rgba(26, 115, 232, 0.3))',
+                animation: 'marker-highlight 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards',
+                backgroundSize: '0% 0.35em'
+              }}
+            >
+              Your eyes are your voice.
+            </span>
           </h1>
           <p className="text-xl text-textMuted font-medium leading-relaxed max-w-lg">
             Eyra is a browser-based communication tool for people living with ALS — no hardware, no installation, just a webcam.
@@ -45,11 +60,11 @@ export default function Landing() {
         </div>
 
         {/* Right Column - Mockup */}
-        <div className="w-full bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100 overflow-hidden min-h-[500px] flex flex-col">
-          <div className="h-10 bg-gray-50 border-b border-gray-100 flex items-center px-4 gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-400"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-            <div className="w-3 h-3 rounded-full bg-green-400"></div>
+        <div className="w-full bg-white rounded-2xl shadow-[0_25px_65px_rgba(0,0,0,0.15)] border border-slate-200 overflow-hidden min-h-[500px] flex flex-col hover:shadow-[0_30px_80px_rgba(0,0,0,0.2)] transition-shadow duration-500">
+          <div className="h-10 bg-white border-b border-gray-200 flex items-center px-4 gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500 shadow-inner"></div>
+            <div className="w-3 h-3 rounded-full bg-yellow-500 shadow-inner"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500 shadow-inner"></div>
           </div>
           <div className="p-6 flex-1 flex flex-col gap-6">
             {/* Top Bar Mock */}

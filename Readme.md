@@ -1,8 +1,23 @@
+
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![WebGazer.js](https://img.shields.io/badge/WebGazer.js-F24E1E?style=for-the-badge)
+![Gemini 2.5 Flash](https://img.shields.io/badge/Gemini_2.5_Flash-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![Web Speech API](https://img.shields.io/badge/Web_Speech_API-FFB800?style=for-the-badge)
+![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
+
+<div align="center">
+  <img src="./assets/logo.png" alt="Eyra Logo" width="300" />
+</div>
+
 # Eyra — Your Eyes Are Your Voice
 
 **Eyra** is a modern, web-based Augmentative and Alternative Communication (AAC) application designed specifically for patients with ALS and severe motor disabilities. 
 
 By leveraging standard webcams and advanced computer vision, Eyra allows users to compose words, expand them into full sentences using an onboard LLM, and synthesize speech—entirely through natural eye movements.
+
+> [!IMPORTANT]
+> **Note:** It will take 10 seconds for the ML model to load, after you have turned on the camera, wait for 10 seconds. Then webcam will be ready to select words.
 
 ---
 
