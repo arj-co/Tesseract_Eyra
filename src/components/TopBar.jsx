@@ -53,15 +53,21 @@ export default function TopBar({ wordBuffer, predictedSentence, isLoading }) {
 
       {/* Right: LLM Predicton */}
       <div className="flex-1 flex justify-end">
-        {isLoading ? (
-          <div className="italic text-xl text-medicalBlue bg-blue-50 px-6 py-2 rounded-xl border border-blue-100 max-w-sm truncate shadow-inner animate-pulse">
-            Expanding...
-          </div>
-        ) : (
-          <div className="italic text-xl text-textMuted bg-bgAlternate px-6 py-2 rounded-xl border border-gray-100 max-w-sm truncate shadow-inner shadow-sm animate-pulse">
-             {predictedSentence ? `"${predictedSentence}"` : "Waiting for input"}
-          </div>
-        )}
+        <div className="bg-bgAlternate px-6 py-2 rounded-xl border border-gray-100 max-w-sm min-h-[44px] flex items-center shadow-sm">
+          {isLoading ? (
+            <span className="italic text-xl text-textMuted animate-pulse">
+              Expanding...
+            </span>
+          ) : predictedSentence ? (
+            <span className="italic text-xl text-textPrimary font-sans">
+              "{predictedSentence}"
+            </span>
+          ) : (
+            <span className="text-gray-400 italic text-lg">
+              Sentence will appear here...
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

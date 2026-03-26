@@ -53,10 +53,7 @@ export default function Landing() {
               <span className="w-2.5 h-2.5 rounded-full bg-[#E11484]"></span>
               <span className="text-sm font-semibold text-textPrimary">SDG 10: Reduced Inequalities</span>
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-bgAlternate rounded-full border border-gray-200">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#19486A]"></span>
-              <span className="text-sm font-semibold text-textPrimary">SDG 17: Partnerships</span>
-            </div>
+
           </div>
         </div>
 
@@ -115,7 +112,7 @@ export default function Landing() {
             {/* Status bar mock */}
             <div className="h-8 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 pt-2 opacity-50">
               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div>Webcam: Active</div>
-              <div>Dwell: 0.5s</div>
+              <div>Dwell: 0.25s</div>
             </div>
           </div>
         </div>

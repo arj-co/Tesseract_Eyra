@@ -10,7 +10,9 @@ export default function ActionButton({ label, type, id, isDwelling, dwellProgres
       className={`w-full rounded-lg font-bold text-center transition-all cursor-pointer ${
         isSpeak 
           ? 'bg-[#2563eb] text-white hover:bg-[#1d4ed8] shadow-[0_4px_14px_rgba(37,99,235,0.4)] border border-[#1d4ed8] hover:border-[#1e40af] animate-pulse-glow hover:scale-[1.02]' 
-          : 'bg-white border border-slate-200 text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:border-slate-300 hover:bg-slate-50 hover:-translate-y-0.5'
+          : type === 'autofill'
+            ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:opacity-90 shadow-[0_4px_12px_rgba(79,70,229,0.3)] border-0 hover:scale-[1.01]'
+            : 'bg-white border border-slate-200 text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.05),0_1px_2px_rgba(0,0,0,0.1)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] hover:border-slate-300 hover:bg-slate-50 hover:-translate-y-0.5'
       }`}
     >
       <DwellRing active={isDwelling} progress={dwellProgress}>

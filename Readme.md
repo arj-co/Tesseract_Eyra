@@ -24,7 +24,7 @@ By leveraging standard webcams and advanced computer vision, Eyra allows users t
 ## Features
 
 - **Hardware-Free Eye Tracking:** Powered by `WebGazer.js` running entirely in the browser. No expensive, specialized eye-tracking hardware required.
-- **Progressive Dwell Interactions:** Navigate the interface completely hands-free. Staring at a zone or letter initiates a 0.5-second dwell timer with crisp visual feedback (progress bars and rings).
+- **Progressive Dwell Interactions:** Navigate the interface completely hands-free. Staring at a zone or letter initiates a 0.25-second dwell timer with crisp visual feedback (progress bars and rings).
 - **Intelligent Sentence Expansion:** Don't type every letter. Simply gaze at shorthand characters and Eyra's integrated LLM expands them into complete, context-aware sentences automatically.
 - **Text-to-Speech (TTS):** The vivid blue **SPEAK** button utilizes the browser's native `speechSynthesis` API to immediately vocalize the generated sentence.
 - **Professional, Accessible UI:** 

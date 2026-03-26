@@ -27,28 +27,15 @@ function playClickSound() {
   } catch (e) {}
 }
 
-function speakSentence(text) {
-  if (!text) return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.rate = 0.9;
-  utterance.pitch = 1.0;
-  utterance.volume = 1.0;
-  
-  const voices = window.speechSynthesis.getVoices();
-  const preferred = voices.find(v =>
-    v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha')
-  );
-  if (preferred) utterance.voice = preferred;
-  
-  window.speechSynthesis.speak(utterance);
-}
+
 
 export default function App() {
   const [activeZone, setActiveZone] = useState(null);
   const [wordBuffer, setWordBuffer] = useState('');
   const [predictedSentence, setPredictedSentence] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [webcamReady, setWebcamReady] = useState(false);
+  // 'idle' | 'camera' | 'model' | 'ready'
+  const [webcamStatus, setWebcamStatus] = useState('idle');
   const [progressMap, setProgressMap] = useState({});
   
   const gazeRef = useRef({ x: 0, y: 0 });
@@ -56,15 +43,26 @@ export default function App() {
 
   const triggerLLM = (buffer) => {
     clearTimeout(llmTimerRef.current);
-    if (buffer.length >= 2) {
+    const trimmed = buffer.trim();
+    if (trimmed.length < 2) return;
+
+    const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
+
+    if (wordCount >= 4) {
+      // Trigger immediately for longer inputs
+      setIsLoading(true);
+      expandToSentence(trimmed).then(sentence => {
+        if (sentence) setPredictedSentence(sentence);
+        setIsLoading(false);
+      });
+    } else {
+      // Trigger with delay after last input
       llmTimerRef.current = setTimeout(async () => {
         setIsLoading(true);
-        const sentence = await expandToSentence(buffer);
-        setPredictedSentence(sentence);
+        const sentence = await expandToSentence(trimmed);
+        if (sentence) setPredictedSentence(sentence);
         setIsLoading(false);
       }, 2000);
-    } else {
-      setPredictedSentence('');
     }
   };
 
@@ -82,35 +80,35 @@ export default function App() {
       });
       setActiveZone(null);
       playClickSound();
+
     } else if (hit === 'action-SPACE') {
       setWordBuffer(prev => {
         const next = prev + ' ';
-        triggerLLM(next);
+        clearTimeout(llmTimerRef.current); // Cancel delayed trigger
+        // Trigger immediately on space
+        setIsLoading(true);
+        expandToSentence(prev).then(sentence => {
+          if (sentence) setPredictedSentence(sentence);
+          setIsLoading(false);
+        });
         return next;
       });
       setActiveZone(null);
       playClickSound();
-    } else if (hit === 'action-BACKSPACE') {
+    } else if (hit === 'action-AUTOFILL') {
+      clearTimeout(llmTimerRef.current); // Cancel delayed trigger
       setWordBuffer(prev => {
-        const next = prev.slice(0, -1);
-        if (next.length === 0) setPredictedSentence('');
-        else triggerLLM(next);
-        return next;
+        if (prev.trim().length >= 1) {
+          setIsLoading(true);
+          expandToSentence(prev).then(sentence => {
+            if (sentence) setPredictedSentence(sentence);
+            setIsLoading(false);
+          });
+        }
+        return prev;
       });
       setActiveZone(null);
       playClickSound();
-    } else if (hit === 'action-SPEAK') {
-      setActiveZone(null);
-      setPredictedSentence((currentPred) => {
-         setWordBuffer((currentBuf) => {
-            const textToSpeak = currentPred || currentBuf;
-            if (textToSpeak) {
-               speakSentence(textToSpeak);
-            }
-            return currentBuf;
-         });
-         return currentPred;
-      });
     }
   }, []);
 
@@ -125,7 +123,7 @@ export default function App() {
     });
   }, []);
 
-  useDwell(gazeRef, 500, handleDwell, handleProgress);
+  useDwell(gazeRef, 250, handleDwell, handleProgress);
 
   useEffect(() => {
     let wg = null;
@@ -156,16 +154,22 @@ export default function App() {
       if (window.webgazer) {
         clearInterval(interval);
         wg = window.webgazer;
+        setWebcamStatus('camera'); // camera found, requesting permission
         
         wg.setRegression('ridge')
           .setTracker('TFFacemesh')
           .setGazeListener((data, timestamp) => {
             if (data) {
-              setWebcamReady(true);
+              setWebcamStatus('ready');
               gazeRef.current = { x: data.x, y: data.y };
             }
           })
-          .begin();
+          .begin()
+          .then(() => {
+            // .begin() resolves when the camera stream is open;
+            // model is still loading async — show intermediate state
+            setWebcamStatus(prev => prev === 'ready' ? 'ready' : 'model');
+          });
 
         wg.showVideoPreview(true);
         wg.showPredictionPoints(false);
@@ -176,6 +180,7 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
+      clearTimeout(llmTimerRef.current);
       if (wg) wg.end();
       if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
     };
@@ -259,18 +264,11 @@ export default function App() {
               dwellProgress={progressMap['action-SPACE'] || 0} 
             />
             <ActionButton 
-              id="action-BACKSPACE" 
-              label="BACKSPACE" 
-              type="backspace" 
-              isDwelling={progressMap['action-BACKSPACE'] > 0} 
-              dwellProgress={progressMap['action-BACKSPACE'] || 0} 
-            />
-            <ActionButton 
-              id="action-SPEAK" 
-              label="SPEAK" 
-              type="speak" 
-              isDwelling={progressMap['action-SPEAK'] > 0} 
-              dwellProgress={progressMap['action-SPEAK'] || 0} 
+              id="action-AUTOFILL" 
+              label="AUTOFILL" 
+              type="autofill" 
+              isDwelling={progressMap['action-AUTOFILL'] > 0} 
+              dwellProgress={progressMap['action-AUTOFILL'] || 0} 
             />
           </div>
 
@@ -297,7 +295,7 @@ export default function App() {
         </div>
       </div>
 
-      <StatusBar webcamReady={webcamReady} />
+      <StatusBar webcamStatus={webcamStatus} />
     </div>
   );
 }
