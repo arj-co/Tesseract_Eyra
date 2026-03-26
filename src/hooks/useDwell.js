@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-export function useDwell(gazeRef, dwellTime = 1500, onDwell, onProgress) {
+export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress) {
   const dwellTarget = useRef(null);
   const dwellStart = useRef(null);
   const animFrameRef = useRef(null);

@@ -15,16 +15,17 @@ export default function Landing() {
           <h1 className="font-serif font-bold text-6xl text-deepNavy leading-tight relative">
             <style>{`
               @keyframes marker-highlight {
-                0% { background-size: 0% 0.35em; }
-                100% { background-size: 100% 0.35em; }
+                0% { background-size: 0% 4px; }
+                100% { background-size: 100% 4px; }
               }
             `}</style>
             <span 
-              className="inline bg-left-bottom bg-no-repeat pb-1"
+              className="inline bg-no-repeat pb-2"
               style={{
-                backgroundImage: 'linear-gradient(to right, rgba(26, 115, 232, 0.4), rgba(26, 115, 232, 0.3))',
+                backgroundImage: 'linear-gradient(to right, #1A73E8, #1A73E8)',
+                backgroundPosition: '0 90%',
                 animation: 'marker-highlight 1.2s cubic-bezier(0.25, 1, 0.5, 1) 0.2s forwards',
-                backgroundSize: '0% 0.35em'
+                backgroundSize: '0% 4px'
               }}
             >
               Your eyes are your voice.
@@ -114,7 +115,7 @@ export default function Landing() {
             {/* Status bar mock */}
             <div className="h-8 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400 pt-2 opacity-50">
               <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-green-500"></div>Webcam: Active</div>
-              <div>Dwell: 1.5s</div>
+              <div>Dwell: 0.5s</div>
             </div>
           </div>
         </div>

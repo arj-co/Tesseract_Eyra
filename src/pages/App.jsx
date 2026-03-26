@@ -125,7 +125,7 @@ export default function App() {
     });
   }, []);
 
-  useDwell(gazeRef, 1500, handleDwell, handleProgress);
+  useDwell(gazeRef, 500, handleDwell, handleProgress);
 
   useEffect(() => {
     let wg = null;
