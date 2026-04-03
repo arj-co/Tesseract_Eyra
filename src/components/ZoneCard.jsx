@@ -14,7 +14,7 @@ export default function ZoneCard({ label, id, isZoneActive, isOtherZoneActive, i
       data-dwell={isZoneActive ? null : id}
       className={`relative ${theme.bg} rounded-xl p-6 flex flex-col h-full transition-all duration-200 ease-out overflow-hidden ${
         isZoneActive 
-          ? 'ring-4 ring-medicalBlue/30 border-2 border-medicalBlue shadow-[0_4px_20px_rgba(26,115,232,0.2)] scale-[1.02] z-10' 
+          ? 'ring-4 ring-medicalBlue/30 border-2 border-medicalBlue shadow-[0_4px_20px_rgba(15,110,86,0.2)] scale-[1.02] z-10' 
           : isDimmed 
             ? `border border-slate-200 opacity-40 grayscale-[0.5]` 
             : `border shadow-[0_2px_8px_rgba(0,0,0,0.04),0_0_1px_rgba(0,0,0,0.1)] cursor-pointer ${theme.border} ${theme.hoverBorder} hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]`

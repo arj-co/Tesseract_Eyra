@@ -10,7 +10,7 @@ export default function StatusBar({ webcamStatus }) {
   const { dot, label } = statusConfig[webcamStatus] || statusConfig.idle;
 
   return (
-    <div className="h-10 border-t border-gray-200 flex items-center justify-between px-6 text-sm font-medium text-textMuted shrink-0 shadow-sm bg-white z-10">
+    <div className="h-10 border-t border-gray-200 flex items-center justify-between px-6 text-sm font-medium text-textMuted shrink-0 shadow-sm bg-bgAlternate z-10">
       {/* Left: Webcam Status */}
       <div className="flex items-center gap-2">
         <span className={`w-2.5 h-2.5 rounded-full shadow-sm ${dot}`}></span>
