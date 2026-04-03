@@ -4,6 +4,7 @@ import StatusBar from '../components/StatusBar';
 import ZoneCard from '../components/ZoneCard';
 import LetterKey from '../components/LetterKey';
 import ActionButton from '../components/ActionButton';
+import CalibrationScreen from '../components/CalibrationScreen';
 import { useDwell } from '../hooks/useDwell';
 import { expandToSentence } from '../services/gemini';
 
@@ -34,11 +35,12 @@ export default function App() {
   const [wordBuffer, setWordBuffer] = useState('');
   const [predictedSentence, setPredictedSentence] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCalibrated, setIsCalibrated] = useState(false);
   // 'idle' | 'camera' | 'model' | 'ready'
   const [webcamStatus, setWebcamStatus] = useState('idle');
   const [progressMap, setProgressMap] = useState({});
-  
   const gazeRef = useRef({ x: 0, y: 0 });
+  const lastValidGazeRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const llmTimerRef = useRef(null);
 
   const triggerLLM = (buffer) => {
@@ -67,6 +69,8 @@ export default function App() {
   };
 
   const handleDwell = useCallback((hit) => {
+    if (!isCalibrated) return;
+
     if (hit.startsWith('zone-')) {
       const zone = hit.split('-')[1];
       setActiveZone(zone);
@@ -113,6 +117,8 @@ export default function App() {
   }, []);
 
   const handleProgress = useCallback((hit, progress) => {
+    if (!isCalibrated) return;
+
     setProgressMap(prev => {
       const current = prev[hit] || 0;
       if (progress === 0 && !prev[hit]) return prev;
@@ -124,6 +130,26 @@ export default function App() {
   }, []);
 
   useDwell(gazeRef, 250, handleDwell, handleProgress);
+
+  useEffect(() => {
+    // Reset calibration state if camera status changes
+    if (webcamStatus !== 'ready') {
+      setIsCalibrated(false);
+    }
+  }, [webcamStatus]);
+
+  // Lock calibration model
+  useEffect(() => {
+    if (isCalibrated && window.webgazer) {
+      window.webgazer.pause();
+      if (typeof window.webgazer.removeMouseEventListeners === 'function') {
+        window.webgazer.removeMouseEventListeners();
+      }
+      setTimeout(() => {
+        window.webgazer.resume();
+      }, 100);
+    }
+  }, [isCalibrated]);
 
   useEffect(() => {
     let wg = null;
@@ -158,10 +184,29 @@ export default function App() {
         
         wg.setRegression('ridge')
           .setTracker('TFFacemesh')
+          .applyKalmanFilter(true)
+          .saveDataAcrossSessions(false)
           .setGazeListener((data, timestamp) => {
             if (data) {
               setWebcamStatus('ready');
-              gazeRef.current = { x: data.x, y: data.y };
+              
+              // Jitter reduction and coordinate clamping
+              const currentX = Math.max(0, Math.min(window.innerWidth, data.x));
+              const currentY = Math.max(0, Math.min(window.innerHeight, data.y));
+              const lastX = lastValidGazeRef.current.x;
+              const lastY = lastValidGazeRef.current.y;
+              
+              // Ignore high velocity/erratic jumps (>120px in a single frame update)
+              const dist = Math.sqrt(Math.pow(currentX - lastX, 2) + Math.pow(currentY - lastY, 2));
+              
+              if (dist <= 120) {
+                // Micro-movement smoothing via LERP
+                const smoothX = lastX + (currentX - lastX) * 0.8;
+                const smoothY = lastY + (currentY - lastY) * 0.8;
+                
+                lastValidGazeRef.current = { x: smoothX, y: smoothY };
+                gazeRef.current = { x: smoothX, y: smoothY };
+              }
             }
           })
           .begin()
@@ -224,6 +269,10 @@ export default function App() {
   return (
     <div className="w-screen h-screen overflow-hidden flex flex-col bg-bgAlternate font-sans text-textPrimary">
       <TopBar wordBuffer={wordBuffer} predictedSentence={predictedSentence} isLoading={isLoading} />
+
+      {webcamStatus === 'ready' && !isCalibrated && (
+        <CalibrationScreen onComplete={() => setIsCalibrated(true)} />
+      )}
 
       <div className="flex-1 p-6 md:p-8 flex items-stretch justify-center">
         <div 

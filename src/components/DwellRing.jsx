@@ -10,7 +10,7 @@ export default function DwellRing({ active, progress, children }) {
 
   return (
     <div className={`relative flex items-center justify-center w-full h-full rounded-xl transition-all ${
-      active ? 'bg-[#E8F0FE] ring-2 ring-medicalBlue scale-[1.05] z-20 shadow-md' : ''
+      active ? 'bg-[#E1F5EE] ring-2 ring-medicalBlue scale-[1.05] z-20 shadow-md' : ''
     }`}>
       {children}
       {active && (
@@ -25,7 +25,7 @@ export default function DwellRing({ active, progress, children }) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#1A73E8"
+            stroke="#0F6E56"
             strokeWidth={strokeWidth}
             className="opacity-15"
           />
@@ -35,7 +35,7 @@ export default function DwellRing({ active, progress, children }) {
             cy={size / 2}
             r={radius}
             fill="none"
-            stroke="#1A73E8"
+            stroke="#0F6E56"
             strokeWidth={strokeWidth}
             strokeDasharray={circumference}
             strokeDashoffset={offset}

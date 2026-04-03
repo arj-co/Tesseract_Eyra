@@ -13,20 +13,31 @@ export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress) {
     }
 
     const elements = document.querySelectorAll('[data-dwell]');
-    let hit = null;
+    let bestHit = null;
+    let minDistance = Infinity;
 
     elements.forEach(el => {
       const rect = el.getBoundingClientRect();
-      const margin = 10; // little leniency
+      const margin = 20; // 20px generous hit boundary
       if (
         gaze.x >= rect.left - margin &&
         gaze.x <= rect.right + margin &&
         gaze.y >= rect.top - margin &&
         gaze.y <= rect.bottom + margin
       ) {
-        hit = el.getAttribute('data-dwell');
+        // Calculate distance to center to find the single best match if multiple overlap
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const distance = Math.sqrt(Math.pow(gaze.x - centerX, 2) + Math.pow(gaze.y - centerY, 2));
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestHit = el.getAttribute('data-dwell');
+        }
       }
     });
+
+    const hit = bestHit;
 
     if (hit) {
       if (dwellTarget.current !== hit) {
