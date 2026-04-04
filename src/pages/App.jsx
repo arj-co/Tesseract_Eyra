@@ -67,31 +67,39 @@ export default function App() {
   const lastValidGazeRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const llmTimerRef = useRef(null);
 
-  const triggerLLM = useCallback((buffer) => {
+  const lastRequestIdRef = useRef(0);
+
+  const triggerLLM = useCallback((buffer, immediate = false) => {
     clearTimeout(llmTimerRef.current);
     const trimmed = buffer.trim();
     if (trimmed.length < 2) return;
 
+    const currentRequestId = ++lastRequestIdRef.current;
     const wordCount = trimmed.split(/\s+/).filter(w => w.length > 0).length;
 
-    if (wordCount >= 4) {
-      // Trigger immediately for longer inputs
+    const runExpansion = async () => {
       setIsLoading(true);
-      expandToSentence(trimmed).then(sentence => {
-        if (sentence) setPredictedSentence(sentence);
+      console.log(`Triggering Gemini for: "${trimmed}" (immediate: ${immediate}, words: ${wordCount})`);
+      const sentence = await expandToSentence(trimmed);
+      
+      // Only update if this is still the most recent request
+      if (currentRequestId === lastRequestIdRef.current) {
+        if (sentence) {
+          console.log(`Gemini response: "${sentence}"`);
+          setPredictedSentence(sentence);
+        }
         setIsLoading(false);
-      });
+      } else {
+        console.warn(`Ignoring stale Gemini response for: "${trimmed}"`);
+      }
+    };
+
+    if (immediate || wordCount >= 3) {
+      runExpansion();
     } else {
-      // Trigger with delay after last input
-      llmTimerRef.current = setTimeout(async () => {
-        setIsLoading(true);
-        const sentence = await expandToSentence(trimmed);
-        if (sentence) setPredictedSentence(sentence);
-        setIsLoading(false);
-      }, 2000);
+      llmTimerRef.current = setTimeout(runExpansion, 2000);
     }
   }, []);
-
 
   const handleDwell = useCallback((hit) => {
     if (!isCalibrated) return;
@@ -113,27 +121,14 @@ export default function App() {
     } else if (hit === 'action-SPACE') {
       setWordBuffer(prev => {
         const next = prev + ' ';
-        clearTimeout(llmTimerRef.current); // Cancel delayed trigger
-        // Trigger immediately on space
-        setIsLoading(true);
-        expandToSentence(prev).then(sentence => {
-          if (sentence) setPredictedSentence(sentence);
-          setIsLoading(false);
-        });
+        triggerLLM(prev, true); // Trigger immediately on space
         return next;
       });
       setActiveZone(null);
       playClickSound();
     } else if (hit === 'action-AUTOFILL') {
-      clearTimeout(llmTimerRef.current); // Cancel delayed trigger
       setWordBuffer(prev => {
-        if (prev.trim().length >= 1) {
-          setIsLoading(true);
-          expandToSentence(prev).then(sentence => {
-            if (sentence) setPredictedSentence(sentence);
-            setIsLoading(false);
-          });
-        }
+        triggerLLM(prev, true); // Trigger immediately on autofill
         return prev;
       });
       setActiveZone(null);
@@ -217,33 +212,46 @@ export default function App() {
           .saveDataAcrossSessions(false)
           .setGazeListener((data, timestamp) => {
             if (data) {
-              
-              // Jitter reduction and coordinate clamping
               const currentX = Math.max(0, Math.min(window.innerWidth, data.x));
               const currentY = Math.max(0, Math.min(window.innerHeight, data.y));
               const lastX = lastValidGazeRef.current.x;
               const lastY = lastValidGazeRef.current.y;
-              
-              // Determine distance to apply variable smoothing
               const dist = Math.sqrt(Math.pow(currentX - lastX, 2) + Math.pow(currentY - lastY, 2));
-              
-              // If it's a huge erratic jump (like a glitch), apply heavier smoothing/dampening
-              // so it takes a few frames to catch up, preventing a violent screen teleport.
-              // Otherwise, use a standard 0.8 responsive LERP.
               const smoothFactor = dist > 150 ? 0.3 : 0.8;
-              
               const smoothX = lastX + (currentX - lastX) * smoothFactor;
               const smoothY = lastY + (currentY - lastY) * smoothFactor;
-              
               lastValidGazeRef.current = { x: smoothX, y: smoothY };
               gazeRef.current = { x: smoothX, y: smoothY };
             }
-          })
-          .begin()
+          });
+
+        // Use a slight delay for transitioning to 'model' state if weights are downloading
+        const modelTimeout = setTimeout(() => {
+          setWebcamStatus('model');
+        }, 1200);
+
+        wg.begin()
           .then(() => {
-            // .begin() resolves when camera permission is granted and stream is open.
-            // Transition to 'ready' immediately so the UI is unblocked.
-            setWebcamStatus('ready');
+            clearTimeout(modelTimeout);
+            // Transition to 'model' if we skip the timeout
+            setWebcamStatus('model');
+            
+            // Poll for actual readiness (when weights and models are fully loaded)
+            const readyCheck = setInterval(() => {
+              if (wg.isReady()) {
+                setWebcamStatus('ready');
+                clearInterval(readyCheck);
+                console.log("WebGazer: Models loaded and ready.");
+              }
+            }, 500);
+
+            // Safety limit for checking
+            setTimeout(() => clearInterval(readyCheck), 30000);
+          })
+          .catch(err => {
+            clearTimeout(modelTimeout);
+            console.error("WebGazer failed to begin:", err);
+            setWebcamStatus('idle');
           });
 
         wg.showVideoPreview(true);
