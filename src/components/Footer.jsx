@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="border-t border-gray-100 bg-bgAlternate py-12 mt-20">
-      <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between">
+    <footer className="border-t border-gray-100 bg-bgAlternate py-12">
+      <div className="max-w-[1280px] mx-auto px-6 md:px-10 flex flex-col md:flex-row items-center justify-between w-full">
         <div className="flex flex-col mb-6 md:mb-0">
           <span className="font-serif font-bold text-2xl text-deepNavy">Eyra</span>
           <span className="text-textMuted text-sm mt-1">Built for Tesseract '26</span>
@@ -16,7 +16,7 @@ export default function Footer() {
           <Link to="/app" className="hover:text-deepNavy transition-colors">Launch App</Link>
         </div>
 
-        <div className="text-textMuted text-sm text-right px-4">
+        <div className="text-textMuted text-sm text-right">
           <p>SDG 3 · SDG 10 · Open Innovation Track</p>
         </div>
       </div>

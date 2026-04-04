@@ -28,6 +28,30 @@ function playClickSound() {
   } catch (e) {}
 }
 
+function GazeDot({ gazeRef }) {
+  const dotRef = useRef(null);
+
+  useEffect(() => {
+    let animId;
+    const update = () => {
+      if (dotRef.current && gazeRef.current) {
+        dotRef.current.style.left = `${gazeRef.current.x}px`;
+        dotRef.current.style.top = `${gazeRef.current.y}px`;
+      }
+      animId = requestAnimationFrame(update);
+    };
+    update();
+    return () => cancelAnimationFrame(animId);
+  }, [gazeRef]);
+
+  return (
+    <div 
+      ref={dotRef}
+      className="fixed w-6 h-6 border-2 border-white rounded-full bg-medicalBlue/40 pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 shadow-lg"
+    />
+  );
+}
+
 
 
 export default function App() {
@@ -43,7 +67,7 @@ export default function App() {
   const lastValidGazeRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
   const llmTimerRef = useRef(null);
 
-  const triggerLLM = (buffer) => {
+  const triggerLLM = useCallback((buffer) => {
     clearTimeout(llmTimerRef.current);
     const trimmed = buffer.trim();
     if (trimmed.length < 2) return;
@@ -66,7 +90,8 @@ export default function App() {
         setIsLoading(false);
       }, 2000);
     }
-  };
+  }, []);
+
 
   const handleDwell = useCallback((hit) => {
     if (!isCalibrated) return;
@@ -114,7 +139,7 @@ export default function App() {
       setActiveZone(null);
       playClickSound();
     }
-  }, []);
+  }, [isCalibrated, triggerLLM]);
 
   const handleProgress = useCallback((hit, progress) => {
     if (!isCalibrated) return;
@@ -127,9 +152,9 @@ export default function App() {
       }
       return prev;
     });
-  }, []);
+  }, [isCalibrated]);
 
-  useDwell(gazeRef, 250, handleDwell, handleProgress);
+  useDwell(gazeRef, 250, handleDwell, handleProgress, isCalibrated);
 
   useEffect(() => {
     // Reset calibration state if camera status changes
@@ -141,13 +166,13 @@ export default function App() {
   // Lock calibration model
   useEffect(() => {
     if (isCalibrated && window.webgazer) {
-      window.webgazer.pause();
       if (typeof window.webgazer.removeMouseEventListeners === 'function') {
         window.webgazer.removeMouseEventListeners();
       }
-      setTimeout(() => {
+      // Ensure tracking is active
+      if (window.webgazer.isReady()) {
         window.webgazer.resume();
-      }, 100);
+      }
     }
   }, [isCalibrated]);
 
@@ -158,7 +183,7 @@ export default function App() {
     // We use !important because WebGazer updates inline styles continuously on requestAnimationFrame
     const styleEl = document.createElement('style');
     styleEl.innerHTML = `
-      #webgazerVideoFeed, #webgazerVideoCanvas, #webgazerFaceOverlay {
+      #webgazerVideoFeed, #webgazerVideoCanvas, #webgazerFaceOverlay, #webgazerGazeDot {
         position: fixed !important;
         bottom: 60px !important;
         left: 16px !important;
@@ -170,8 +195,12 @@ export default function App() {
         z-index: 50 !important;
         pointer-events: none !important;
       }
-      #webgazerFaceFeedbackBox {
+      #webgazerFaceFeedbackBox, #webgazerGazeDot {
         display: none !important;
+        pointer-events: none !important;
+      }
+      canvas {
+        pointer-events: none !important;
       }
     `;
     document.head.appendChild(styleEl);
@@ -188,7 +217,6 @@ export default function App() {
           .saveDataAcrossSessions(false)
           .setGazeListener((data, timestamp) => {
             if (data) {
-              setWebcamStatus('ready');
               
               // Jitter reduction and coordinate clamping
               const currentX = Math.max(0, Math.min(window.innerWidth, data.x));
@@ -196,24 +224,26 @@ export default function App() {
               const lastX = lastValidGazeRef.current.x;
               const lastY = lastValidGazeRef.current.y;
               
-              // Ignore high velocity/erratic jumps (>120px in a single frame update)
+              // Determine distance to apply variable smoothing
               const dist = Math.sqrt(Math.pow(currentX - lastX, 2) + Math.pow(currentY - lastY, 2));
               
-              if (dist <= 120) {
-                // Micro-movement smoothing via LERP
-                const smoothX = lastX + (currentX - lastX) * 0.8;
-                const smoothY = lastY + (currentY - lastY) * 0.8;
-                
-                lastValidGazeRef.current = { x: smoothX, y: smoothY };
-                gazeRef.current = { x: smoothX, y: smoothY };
-              }
+              // If it's a huge erratic jump (like a glitch), apply heavier smoothing/dampening
+              // so it takes a few frames to catch up, preventing a violent screen teleport.
+              // Otherwise, use a standard 0.8 responsive LERP.
+              const smoothFactor = dist > 150 ? 0.3 : 0.8;
+              
+              const smoothX = lastX + (currentX - lastX) * smoothFactor;
+              const smoothY = lastY + (currentY - lastY) * smoothFactor;
+              
+              lastValidGazeRef.current = { x: smoothX, y: smoothY };
+              gazeRef.current = { x: smoothX, y: smoothY };
             }
           })
           .begin()
           .then(() => {
-            // .begin() resolves when the camera stream is open;
-            // model is still loading async — show intermediate state
-            setWebcamStatus(prev => prev === 'ready' ? 'ready' : 'model');
+            // .begin() resolves when camera permission is granted and stream is open.
+            // Transition to 'ready' immediately so the UI is unblocked.
+            setWebcamStatus('ready');
           });
 
         wg.showVideoPreview(true);
@@ -345,6 +375,9 @@ export default function App() {
       </div>
 
       <StatusBar webcamStatus={webcamStatus} />
+      
+      {/* Debug Gaze Dot */}
+      {isCalibrated && <GazeDot gazeRef={gazeRef} />}
     </div>
   );
 }
