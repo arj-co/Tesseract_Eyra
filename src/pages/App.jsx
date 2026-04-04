@@ -5,6 +5,7 @@ import ZoneCard from '../components/ZoneCard';
 import LetterKey from '../components/LetterKey';
 import ActionButton from '../components/ActionButton';
 import CalibrationScreen from '../components/CalibrationScreen';
+import AccuracyScreen from '../components/AccuracyScreen';
 import { useDwell } from '../hooks/useDwell';
 import { expandToSentence } from '../services/gemini';
 
@@ -60,6 +61,8 @@ export default function App() {
   const [predictedSentence, setPredictedSentence] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCalibrated, setIsCalibrated] = useState(false);
+  // 'calibrating' | 'measuring' | 'done'
+  const [calibrationPhase, setCalibrationPhase] = useState('calibrating');
   // 'idle' | 'camera' | 'model' | 'ready'
   const [webcamStatus, setWebcamStatus] = useState('idle');
   const [progressMap, setProgressMap] = useState({});
@@ -155,6 +158,7 @@ export default function App() {
     // Reset calibration state if camera status changes
     if (webcamStatus !== 'ready') {
       setIsCalibrated(false);
+      setCalibrationPhase('calibrating');
     }
   }, [webcamStatus]);
 
@@ -308,8 +312,22 @@ export default function App() {
     <div className="w-screen h-screen overflow-hidden flex flex-col bg-bgAlternate font-sans text-textPrimary">
       <TopBar wordBuffer={wordBuffer} predictedSentence={predictedSentence} isLoading={isLoading} />
 
-      {webcamStatus === 'ready' && !isCalibrated && (
-        <CalibrationScreen onComplete={() => setIsCalibrated(true)} />
+      {webcamStatus === 'ready' && !isCalibrated && calibrationPhase === 'calibrating' && (
+        <CalibrationScreen onComplete={() => setCalibrationPhase('measuring')} />
+      )}
+
+      {webcamStatus === 'ready' && calibrationPhase === 'measuring' && (
+        <AccuracyScreen
+          gazeRef={gazeRef}
+          onRecalibrate={() => {
+            if (window.webgazer) window.webgazer.clearData();
+            setCalibrationPhase('calibrating');
+          }}
+          onContinue={() => {
+            setCalibrationPhase('done');
+            setIsCalibrated(true);
+          }}
+        />
       )}
 
       <div className="flex-1 p-6 md:p-8 flex items-stretch justify-center">
