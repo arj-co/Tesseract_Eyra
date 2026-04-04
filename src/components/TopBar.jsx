@@ -8,7 +8,7 @@ export default function TopBar({ wordBuffer, predictedSentence, isLoading }) {
 
       {/* Left: Logo */}
       <div className="flex items-center gap-3">
-        <span className="font-serif font-bold text-3xl text-deepNavy tracking-tight">Eyra</span>
+        <span className="font-serif font-bold text-4xl text-deepNavy tracking-tight">Eyra</span>
       </div>
 
       {/* Center: Word Buffer */}
