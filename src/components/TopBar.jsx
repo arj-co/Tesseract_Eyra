@@ -1,29 +1,6 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 export default function TopBar({ wordBuffer, predictedSentence, isLoading }) {
-  const pupilRef = useRef(null);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!pupilRef.current) return;
-      const eye = pupilRef.current.parentElement.getBoundingClientRect();
-      const eyeCenterX = eye.left + eye.width / 2;
-      const eyeCenterY = eye.top + eye.height / 2;
-      
-      const angle = Math.atan2(e.clientY - eyeCenterY, e.clientX - eyeCenterX);
-      const distance = Math.min(4, Math.hypot(e.clientX - eyeCenterX, e.clientY - eyeCenterY) / 10);
-      
-      const maxDist = 3.5;
-      const x = Math.cos(angle) * Math.min(distance, maxDist);
-      const y = Math.sin(angle) * Math.min(distance, maxDist);
-      
-      pupilRef.current.style.transform = `translate(${x}px, ${y}px)`;
-    };
-    
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   return (
     <div className="relative h-20 bg-bgAlternate flex items-center justify-between px-8 shadow-sm shrink-0">
       {/* Gradient Line */}
@@ -31,10 +8,6 @@ export default function TopBar({ wordBuffer, predictedSentence, isLoading }) {
 
       {/* Left: Logo */}
       <div className="flex items-center gap-3">
-        <svg className="w-8 h-8 text-medicalBlue opacity-80 animate-blink" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          <circle ref={pupilRef} cx="12" cy="12" r="3" fill="currentColor" stroke="none" className="transition-transform duration-75 ease-out pointer-events-none" />
-        </svg>
         <span className="font-serif font-bold text-3xl text-deepNavy tracking-tight">Eyra</span>
       </div>
 

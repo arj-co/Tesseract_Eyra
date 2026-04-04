@@ -1,13 +1,29 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress) {
+export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress, isActive = true) {
   const dwellTarget = useRef(null);
   const dwellStart = useRef(null);
   const animFrameRef = useRef(null);
 
+  // Clear dwell state when isActive changes (e.g. calibration completes)
+  useEffect(() => {
+    if (dwellTarget.current) {
+      if (onProgress) onProgress(dwellTarget.current, 0);
+      dwellTarget.current = null;
+      dwellStart.current = null;
+    }
+  }, [isActive, onProgress]);
+
   const checkDwell = useCallback(() => {
+    if (!isActive) {
+      // Still need to keep the loop alive if we want it to pick up immediately,
+      // but we skip all hit detection logic
+      animFrameRef.current = requestAnimationFrame(checkDwell);
+      return;
+    }
+
     const gaze = gazeRef.current;
-    if (!gaze) {
+    if (!gaze || (gaze.x === 0 && gaze.y === 0)) {
       animFrameRef.current = requestAnimationFrame(checkDwell);
       return;
     }
@@ -55,9 +71,10 @@ export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress) {
 
         if (elapsed >= dwellTime) {
           onDwell(hit);
-          if (onProgress) onProgress(hit, 0);
+          // Standard is to wait for move-away before re-triggering.
           dwellTarget.current = null;
           dwellStart.current = null;
+          if (onProgress) onProgress(hit, 0);
         }
       }
     } else {
@@ -69,10 +86,14 @@ export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress) {
     }
 
     animFrameRef.current = requestAnimationFrame(checkDwell);
-  }, [gazeRef, dwellTime, onDwell, onProgress]);
+  }, [gazeRef, dwellTime, onDwell, onProgress, isActive]);
 
   useEffect(() => {
     animFrameRef.current = requestAnimationFrame(checkDwell);
-    return () => cancelAnimationFrame(animFrameRef.current);
+    return () => {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
   }, [checkDwell]);
 }
