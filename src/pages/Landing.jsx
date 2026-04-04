@@ -6,6 +6,7 @@ import Mascot from '../components/Mascot';
 import FeatureSequence from '../components/FeatureSequence';
 import SidebarGrid from '../components/SidebarGrid';
 import { motion, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
+import patientsImg from '../../assets/patients.png';
 
 /* ─── Google Fonts injected once ─── */
 const FontLoader = () => {
@@ -21,13 +22,13 @@ const FontLoader = () => {
 
 /* ─── Inline styles / tokens ─── */
 const T = {
-  cream: '#F5F2EC', // Warm clinical cream
-  card: '#FAF8F4',  // Illustration card base
-  ink: '#111111',
-  inkSoft: '#44403C',
-  teal: '#2E7D4F',  // Accent text / SDG3 green
+  cream: 'rgb(227, 222, 192)', // Updated richer creamy olive tone
+  card: '#FAF8F4',
+  ink: '#1C1917',
+  inkSoft: '#525252',
+  teal: '#2E7D4F',
   tealMid: '#1D9E75',
-  tealLight: '#E1F5EE',
+  tealLight: '#E3DEC0', // Aligned with new creamy palette
   sdg3: '#2E7D4F',
   sdg10: '#c43d6b',
   serif: "'DM Serif Display', Georgia, serif",
@@ -53,11 +54,57 @@ const fadeUpKeyframes = `
 /* ─── Caregiver + Patient Image ─── */
 const StoryIllustration = () => (
   <img
-    src="/patients.jpeg"
-    alt="Caregiver pushing patient in a wheelchair"
+    src={patientsImg}
+    alt="Caregiver and patient"
     style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
   />
 );
+
+const FlowerSeparator = () => (
+  <div 
+    className="relative w-full flex items-center justify-between overflow-hidden" 
+    style={{ background: 'transparent', minHeight: '180px', marginTop: '-40px', marginBottom: '-40px' }}
+  >
+    {/* Left Flower: Flipped horizontally and rotated -8deg */}
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      whileInView={{ opacity: 0.6, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        width: '320px',
+        height: '240px',
+        backgroundImage: 'url(/vendor/flowers.png)',
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'left center',
+        transform: 'scaleX(-1) rotate(-8deg)',
+        filter: 'saturate(0.8)',
+        maskImage: 'linear-gradient(to right, black 50%, transparent 100%)',
+      }}
+    />
+    
+    {/* Right Flower: Normal orientation rotated +8deg */}
+    <motion.div
+      initial={{ opacity: 0, x: 20 }}
+      whileInView={{ opacity: 0.6, x: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      style={{
+        width: '320px',
+        height: '240px',
+        backgroundImage: 'url(/vendor/flowers.png)',
+        backgroundSize: 'contain',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right center',
+        transform: 'rotate(8deg)',
+        filter: 'saturate(0.8)',
+        maskImage: 'linear-gradient(to left, black 50%, transparent 100%)',
+      }}
+    />
+  </div>
+);
+
 
 /* ─── Section label component ─── */
 const SectionLabel = ({ children, light }) => (
@@ -144,7 +191,6 @@ function HeroStatement() {
   );
 }
 
-
 function GridBackground() {
   return (
     <div
@@ -161,22 +207,119 @@ function GridBackground() {
   )
 }
 
+
+function LandingBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+      {/* 1. Base Editorial Surface */}
+      <div className="absolute inset-0" style={{ background: T.cream }} />
+
+      {/* 2. Depth Layers (Behind Image Only) */}
+      <div className="absolute inset-0 opacity-30">
+        {/* Faint Technical Grid */}
+        <div 
+          className="absolute inset-0" 
+          style={{ 
+            backgroundImage: `radial-gradient(${T.teal} 1px, transparent 1px)`,
+            backgroundSize: '40px 40px',
+            opacity: 0.15
+          }} 
+        />
+        
+        {/* Subtle Green Gradient Blob */}
+        <div 
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full opacity-20"
+          style={{
+            background: `radial-gradient(circle, ${T.teal} 0%, transparent 70%)`,
+            filter: 'blur(100px)',
+          }}
+        />
+
+        {/* Soft Translucent Circle */}
+        <div 
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full border border-teal-900/5 opacity-40"
+          style={{ background: 'rgba(255,255,255,0.03)' }}
+        />
+      </div>
+
+      {/* 3. Paper Grain Overlay / Noise */}
+      <div 
+        className="absolute inset-0"
+        style={{
+          zIndex: 10,
+          opacity: 0.04,
+          mixBlendMode: 'multiply',
+          pointerEvents: 'none',
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
+        }}
+      />
+    </div>
+  );
+}
+
+function ScrollIndicator() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 0.4 }}
+      transition={{ delay: 1.2, duration: 0.8 }}
+      style={{
+        position: 'absolute',
+        bottom: 40,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        zIndex: 20,
+      }}
+    >
+      <div style={{
+        width: '1px',
+        height: '40px',
+        backgroundColor: T.ink,
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        <motion.div
+          animate={{ 
+            height: ['0%', '100%', '100%'],
+            top: ['0%', '0%', '100%']
+          }}
+          transition={{ 
+            duration: 2, 
+            repeat: Infinity, 
+            ease: "easeInOut",
+            times: [0, 0.5, 1]
+          }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            width: '100%',
+            backgroundColor: T.teal,
+          }}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
 function GazeBeam() {
   return (
     <div 
       className="absolute left-0 right-0 pointer-events-none overflow-hidden"
       style={{
         height: '120px',
-        top: '35%',
+        top: '40%',
         background: `linear-gradient(
           90deg,
           transparent,
-          rgba(46,125,79,0.06),
+          rgba(46,125,79,0.02),
           transparent
         )`,
         filter: 'blur(40px)',
-        opacity: 0.6,
-        zIndex: 1
+        opacity: 0.3,
+        zIndex: 6
       }}
     />
   );
@@ -267,51 +410,7 @@ function SDGCard({ title, color, link, children }) {
   )
 }
 
-/* ─── Hero Illustration with Float + Tilt ─── */
-function HeroIllustration({ mouseX, mouseY }) {
-  const rotateX = useTransform(mouseY, [-300, 300], [2, -2]);
-  const rotateY = useTransform(mouseX, [-300, 300], [-3, 3]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: 0.42, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="relative w-full h-[350px] md:h-[520px]"
-      style={{ perspective: '1200px' }}
-    >
-      <motion.div
-        animate={{ y: [0, -10, 0] }}
-        transition={{ delay: 0.9, duration: 6, repeat: Infinity, ease: "easeInOut" }}
-        className="p-3 group"
-        style={{
-          rotateX,
-          rotateY,
-          transformStyle: "preserve-3d",
-          width: '100%',
-          height: '100%',
-          borderRadius: 32,
-          background: `linear-gradient(180deg, #FAF8F4 0%, #F2F6F3 100%)`,
-          boxShadow: '0 32px 80px rgba(15,110,86,0.12), inset 0 0 0 1px rgba(255,255,255,0.4)',
-        }}
-      >
-        <div className="w-full h-full rounded-[20px] overflow-hidden">
-            <img 
-              src="/patients.jpeg" 
-              alt="Eyra Hero Caregiver and Patient" 
-              style={{ 
-                width: '100%', 
-                height: '100%', 
-                objectFit: 'cover',
-                transition: 'transform 0.8s cubic-bezier(0.16, 1, 0.3, 1)'
-              }} 
-              className="group-hover:scale-105"
-            />
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
 
 /* ─── Count-up number hook ─── */
 function useCountUp(target, duration = 1.6, delay = 0, inView = false) {
@@ -432,7 +531,7 @@ function MetricBand() {
   ];
 
   return (
-    <section ref={ref} style={{ padding: '4rem 1.5rem', background: 'white' }}>
+    <section ref={ref} style={{ padding: '4rem 1.5rem', background: T.cream }}>
       <div style={{ maxWidth: 1280, margin: '0 auto', position: 'relative' }}>
 
         {/* Elevated strip */}
@@ -549,6 +648,7 @@ export default function Landing() {
       <FontLoader />
       <style>{fadeUpKeyframes}</style>
       <SidebarGrid />
+      
       {/* Navbar floats over the full-screen hero */}
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100 }}>
         <Navbar />
@@ -561,215 +661,259 @@ export default function Landing() {
         style={{
           position: 'relative',
           width: '100%',
-          minHeight: '100dvh',
+          height: '100dvh',
           display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'center',
+          alignItems: 'center',
           background: T.cream,
           overflow: 'hidden',
-          padding: '0 2.5rem',
+          padding: '0 5vw',
         }}
       >
-        {/* Background Drift Layer */}
+        <LandingBackground />
+
+        {/* 1. Background "EYRA" Text (Behind Image) */}
         <motion.div
-          className="absolute inset-0 opacity-40 pointer-events-none"
-          style={{
-            background: `
-              radial-gradient(900px 500px at 75% 25%, rgba(46,125,79,0.12), transparent 70%),
-              radial-gradient(700px 400px at 10% 80%, rgba(0,0,0,0.06), transparent 70%)
-            `,
-            backgroundSize: '150% 150%',
-          }}
-          animate={{ 
-            backgroundPosition: ["0% 0%", "100% 100%"] 
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        />
-
-        <GridBackground />
-        <GazeBeam />
-
-        <motion.div 
-          animate={{ scale: [1, 1.003, 1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          style={{ 
-            rotateX: heroRotateX, 
-            rotateY: heroRotateY, 
-            perspective: '2000px',
-            transformStyle: 'preserve-3d',
-            maxWidth: 1280,
-            width: '100%',
-            margin: '0 auto',
-          }}
-          className="relative grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center z-10"
-        >
-          {/* Left */}
-          <div className="relative">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.0, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <SectionLabel>Assistive Communication Technology</SectionLabel>
-            </motion.div>
-
-            <div className="relative mb-6">
-              {/* Headline Highlight */}
-              <div className="absolute -inset-x-8 -inset-y-4 pointer-events-none opacity-50" style={{
-                background: `linear-gradient(90deg, rgba(46,125,79,0.08), transparent 60%)`,
-                zIndex: -1
-              }} />
-              
-              <h1 style={{
-                fontFamily: T.serif, fontSize: 'clamp(2.8rem, 5vw, 4.2rem)',
-                lineHeight: 1.08, letterSpacing: '-0.02em',
-                color: T.ink,
-              }}>
-                <SpoilerLine yOffset={30} delay={0.05} duration={0.8}>A voice for every </SpoilerLine>
-                <div className="inline-block relative ml-2">
-                  <motion.div
-                    initial={{ y: 12, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5, duration: 0.6 }}
-                    className="inline-block"
-                  >
-                    <em style={{ fontStyle: 'italic', color: T.teal }}>gaze</em>
-                  </motion.div>
-                  <motion.span
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: 0.8, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      originX: 0,
-                      position: 'absolute',
-                      bottom: '8px',
-                      left: 0,
-                      right: 0,
-                      height: '3px',
-                      background: T.teal,
-                      opacity: 0.6
-                    }}
-                  />
-                </div>
-              </h1>
-            </div>
-
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.32, duration: 0.8 }}
-              style={{
-                fontSize: '1.05rem', color: T.inkSoft, fontWeight: 300,
-                lineHeight: 1.75, marginBottom: '2.2rem', maxWidth: 440,
-              }}
-            >
-              Eyra is a browser-based communication tool for people living with ALS — no hardware, no installation.
-              Just a webcam and your eyes.
-            </motion.p>
-
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginBottom: '2.2rem' }}>
-              <motion.div
-                initial={{ scale: 0.94, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.55, duration: 0.5 }}
-              >
-                <Link to="/app" style={{
-                  background: T.ink, color: 'white', padding: '0.88rem 2.2rem',
-                  borderRadius: 100, fontFamily: T.sans, fontSize: '0.95rem',
-                  fontWeight: 500, textDecoration: 'none', transition: 'background 0.2s',
-                  display: 'inline-block',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.background = T.teal}
-                  onMouseLeave={e => e.currentTarget.style.background = T.ink}
-                >Launch Eyra</Link>
-              </motion.div>
-
-              <motion.div
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.65, duration: 0.5 }}
-              >
-                <Link to="/how-it-works" style={{
-                  background: 'none', border: `1.5px solid ${T.ink}`, color: T.ink,
-                  padding: '0.85rem 2rem', borderRadius: 100, fontFamily: T.sans,
-                  fontSize: '0.95rem', fontWeight: 500, textDecoration: 'none',
-                  transition: 'all 0.2s', display: 'inline-block',
-                }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = T.teal; e.currentTarget.style.color = T.teal; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = T.ink; e.currentTarget.style.color = T.ink; }}
-                >See How It Works</Link>
-              </motion.div>
-            </div>
-
-            {/* SDG trust badges */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.8 }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}
-            >
-              {[
-                { color: T.sdg3, num: '3', label: 'Good Health & Well-being' },
-                { color: T.sdg10, num: '10', label: 'Reduced Inequalities' },
-              ].map(b => (
-                <div key={b.num} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.78rem', color: T.inkSoft, fontWeight: 500 }}>
-                  <span style={{
-                    width: 24, height: 24, borderRadius: 5, background: b.color,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: 'white', fontSize: '0.62rem', fontWeight: 700, fontFamily: T.serif,
-                  }}>{b.num}</span>
-                  SDG {b.num} · {b.label}
-                  {b.num === '3' && <span style={{ width: 1, height: 14, background: 'rgba(28,25,23,0.15)', marginLeft: 4 }} />}
-                </div>
-              ))}
-            </motion.div>
-          </div>
-
-          {/* Right – illustration */}
-          <HeroIllustration mouseX={mouseXSpring} mouseY={mouseYSpring} />
-        </motion.div>
-
-        {/* ── Scroll cue ── */}
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 0.07, scale: 1 }}
+          transition={{ duration: 1.2, delay: 0.2 }}
           style={{
             position: 'absolute',
-            bottom: 32,
             left: '50%',
-            transform: 'translateX(-50%)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 6,
-            zIndex: 20,
+            top: '46%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 1,
+            pointerEvents: 'none',
           }}
         >
-          <span style={{ fontSize: '0.68rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: T.inkSoft, opacity: 0.45, fontFamily: T.sans }}>scroll</span>
           <motion.div
-            animate={{ y: [0, 5, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+            animate={{ y: [4, -4, 4] }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             style={{
-              width: 1,
-              height: 32,
-              background: `linear-gradient(to bottom, ${T.teal}, transparent)`,
-              opacity: 0.5,
-              borderRadius: 999,
+              fontFamily: T.serif,
+              fontSize: 'min(36vw, 520px)',
+              color: T.ink,
+              letterSpacing: '-0.02em',
+              filter: 'blur(3px)',
+              lineHeight: 1,
+              opacity: 1,
             }}
-          />
+          >
+            EYRA
+          </motion.div>
         </motion.div>
+
+        {/* 2. Patient Illustration (Centered) */}
+        <div style={{
+          position: 'absolute',
+          right: '5vw',
+          top: '52%',
+          transform: 'translateY(-50%)',
+          zIndex: 2,
+          width: 'min(920px, 62vw)',
+          perspective: '1200px',
+        }}>
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          >
+            <motion.div
+              animate={{ y: [-6, 6, -6] }}
+              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+              style={{ position: 'relative', rotateX: heroRotateX, rotateY: heroRotateY }}
+            >
+              {/* Ambient Shadow */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-20px',
+                left: '15%',
+                right: '15%',
+                height: '40px',
+                background: 'rgba(0,0,0,0.18)',
+                filter: 'blur(60px)',
+                borderRadius: '50%',
+                zIndex: -1
+              }} />
+              {/* Radial Halo */}
+              <div style={{
+                position: 'absolute',
+                left: '50%',
+                top: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '180%',
+                height: '180%',
+                background: `radial-gradient(circle, ${T.teal} 0%, transparent 70%)`,
+                opacity: 0.1,
+                filter: 'blur(80px)',
+                zIndex: -2
+              }} />
+              
+              <img 
+                src={patientsImg} 
+                alt="Human connection" 
+                style={{ 
+                  width: '100%', 
+                  display: 'block', 
+                  filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.12))',
+                  borderRadius: '32px'
+                }} 
+              />
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* 3. Left Text Content */}
+        <div className="relative z-10 w-full max-w-[1280px] mx-auto pointer-events-none">
+          <div style={{ maxWidth: 460 }} className="pointer-events-auto">
+            <motion.div
+              initial="hidden"
+              animate="show"
+              variants={{
+                show: { transition: { staggerChildren: 0.06 } }
+              }}
+            >
+              <motion.div
+                variants={{
+                  hidden: { opacity: 0, y: 18 },
+                  show: { opacity: 1, y: 0, transition: { duration: 0.8 } }
+                }}
+              >
+                <SectionLabel>Assistive Communication Technology</SectionLabel>
+              </motion.div>
+
+              <div style={{ marginBottom: 24 }}>
+                {[
+                  { text: "A voice for", y: 18 },
+                  { text: "every", y: 18 },
+                  { text: "human", y: 18, underline: true }
+                ].map((line, i) => (
+                  <div key={i} className="overflow-hidden">
+                    <motion.h1
+                      variants={{
+                        hidden: { opacity: 0, y: line.y },
+                        show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } }
+                      }}
+                      style={{
+                        fontFamily: T.serif,
+                        fontSize: 'clamp(2.8rem, 5.5vw, 4.8rem)',
+                        lineHeight: 1.15,
+                        letterSpacing: '-0.02em',
+                        color: T.ink,
+                        position: 'relative',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {line.text}
+                      {line.underline && (
+                        <motion.span
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ delay: 0.8, duration: 0.6 }}
+                          style={{
+                            position: 'absolute',
+                            bottom: '8px',
+                            left: 0,
+                            right: 0,
+                            height: '3px',
+                            background: T.teal,
+                            opacity: 0.6,
+                            originX: 0
+                          }}
+                        />
+                      )}
+                    </motion.h1>
+                  </div>
+                ))}
+              </div>
+
+              <motion.p 
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25, duration: 0.8 }}
+                style={{
+                  fontSize: '1.05rem', 
+                  color: T.inkSoft, 
+                  fontWeight: 300,
+                  lineHeight: 1.8, 
+                  marginBottom: 28, 
+                  maxWidth: 400,
+                }}
+              >
+                Eyra is a browser-based communication tool for people living with ALS — no hardware, no installation.
+                Just a webcam and your eyes.
+              </motion.p>
+
+              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.35, duration: 0.5 }}
+                >
+                  <Link to="/app" 
+                    className="group"
+                    style={{
+                      background: T.ink, color: 'white', padding: '0.9rem 2.4rem',
+                      borderRadius: 100, fontFamily: T.sans, fontSize: '0.95rem',
+                      fontWeight: 500, textDecoration: 'none', transition: 'all 0.2s ease',
+                      display: 'inline-block',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                    }}
+                  >
+                    Launch Eyra
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <Link to="/how-it-works" 
+                    style={{
+                      background: 'rgba(28,25,23,0.03)', border: `1.5px solid rgba(28,25,23,0.2)`, color: T.ink,
+                      padding: '0.85rem 2.2rem', borderRadius: 100, fontFamily: T.sans,
+                      fontSize: '0.95rem', fontWeight: 500, textDecoration: 'none',
+                      transition: 'all 0.2s ease', display: 'inline-block',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.background = 'rgba(28,25,23,0.06)';
+                      e.currentTarget.style.borderColor = `rgba(28,25,23,0.4)`;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.background = 'rgba(28,25,23,0.03)';
+                      e.currentTarget.style.borderColor = `rgba(28,25,23,0.2)`;
+                    }}
+                  >
+                    See How It Works
+                  </Link>
+                </motion.div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+
+        <ScrollIndicator />
       </section>
 
       {/* ── STATS STRIP ── */}
       <MetricBand />
 
+      {/* ── BOTANICAL DIVIDER ── */}
+      <FlowerSeparator />
+
+
       {/* ── HOW IT WORKS ── */}
-      <section className="px-6 py-16 md:px-10 md:py-24 w-full">
+      <section className="px-6 py-16 md:px-10 md:py-24 w-full" style={{ background: T.cream }}>
         <div className="max-w-[1280px] mx-auto w-full">
           <div className="text-center mb-10 md:mb-14 flex flex-col items-center">
             <SectionLabel>The process</SectionLabel>
@@ -835,7 +979,7 @@ export default function Landing() {
       </section>
 
       {/* ── WHO IT'S FOR ── */}
-      <section className="px-6 py-16 md:px-10 md:py-24 w-full" style={{ background: 'white' }}>
+      <section className="px-6 py-16 md:px-10 md:py-24 w-full" style={{ background: T.cream }}>
         <div className="max-w-[1280px] mx-auto w-full">
 
           {/* Human story header */}
@@ -861,7 +1005,7 @@ export default function Landing() {
                 The silence isn't just physical — it's the loss of self.
               </p>
             </div>
-            <div className="h-[260px] md:h-[380px] w-full" style={{ borderRadius: 20, overflow: 'hidden' }}>
+            <div className="h-[320px] md:h-[520px] w-full" style={{ borderRadius: 24, overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.08)' }}>
               <StoryIllustration />
             </div>
           </div>
@@ -893,7 +1037,7 @@ export default function Landing() {
               <motion.div
                 key={c.title}
                 variants={fadeUp}
-                className="p-8 rounded-2xl bg-white border border-black/5 flex flex-col h-full shadow-sm"
+                  className="p-8 rounded-2xl bg-white/50 backdrop-blur-sm border border-black/5 flex flex-col h-full shadow-sm"
                 whileHover={{ y: -6, scale: 1.02 }}
                 transition={{ duration: 0.3 }}
               >
