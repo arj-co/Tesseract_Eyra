@@ -6,6 +6,7 @@ import Landing from './pages/Landing'
 import HowItWorks from './pages/HowItWorks'
 import About from './pages/About'
 import EyraApp from './pages/App'
+import DemoBoard from './pages/DemoBoard'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -15,6 +16,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Route path="/how-it-works" element={<HowItWorks />} />
         <Route path="/about" element={<About />} />
         <Route path="/app" element={<EyraApp />} />
+        <Route path="/demo" element={<DemoBoard />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import TopBar from '../components/TopBar';
 import StatusBar from '../components/StatusBar';
 import ZoneCard from '../components/ZoneCard';
@@ -8,8 +9,9 @@ import AccuracyScreen from '../components/AccuracyScreen';
 import DwellRing from '../components/DwellRing';
 import { useDwell } from '../hooks/useDwell';
 import { expandToSentence } from '../services/gemini';
+import { speak } from '../services/speech';
 
-/* ── Zone definitions ── */
+/* ── Zone definitions (Matching App.jsx) ── */
 const ZONES = {
   TL: { label: 'A – F', letters: 'ABCDEF' },
   TR: { label: 'G – M', letters: 'GHIJKLM' },
@@ -18,21 +20,16 @@ const ZONES = {
 };
 
 const ZONE_DWELL_MS  = 600;
-const LETTER_DWELL_MS = 300; // 300ms dwell to select a letter
-const AUTO_EXPAND_LETTERS = 5; // auto-terminate after this many letters (non-space chars)
+const LETTER_DWELL_MS = 800;
+const AUTO_EXPAND_LETTERS = 5; 
 
-const ZONE_LETTER_COLORS = {
-  TL: 'hover:bg-blue-50 hover:text-blue-900 hover:border-blue-400',
-  TR: 'hover:bg-violet-50 hover:text-violet-900 hover:border-violet-400',
-  BL: 'hover:bg-teal-50 hover:text-teal-900 hover:border-teal-400',
-  BR: 'hover:bg-amber-50 hover:text-amber-900 hover:border-amber-400',
-};
-
-const ZONE_BADGE = {
-  TL: 'bg-blue-700 text-white',
-  TR: 'bg-violet-700 text-white',
-  BL: 'bg-teal-700 text-white',
-  BR: 'bg-amber-600 text-white',
+/* ── Shortcuts for the Demo Board ── */
+const SHORTCUTS = {
+  'qu': 'I need my favourite pizza',
+  'th': 'Thank you so much!',
+  'hw': 'Hi, how are you today?',
+  'he': 'Hello there',
+  'gd': 'Goodbye',
 };
 
 /* ── Helpers ── */
@@ -63,14 +60,13 @@ function speakSentence(text) {
   synth.speak(utter);
 }
 
-/* ── Polished gaze cursor with EMA smoothing ── */
+/* ── Polished gaze cursor ── */
 function GazeDot({ gazeRef }) {
   const dotRef = useRef(null);
   useEffect(() => {
     let id;
     const tick = () => {
       if (dotRef.current && gazeRef.current) {
-        // We use the smoothed coordinates directly from the ref
         dotRef.current.style.left = `${gazeRef.current.x}px`;
         dotRef.current.style.top  = `${gazeRef.current.y}px`;
       }
@@ -94,7 +90,7 @@ function GazeDot({ gazeRef }) {
         pointerEvents: 'none',
         zIndex: 9999,
         transform: 'translate(-50%, -50%)',
-        // No CSS transition — Kalman filter handles smoothing upstream
+        transition: 'left 25ms linear, top 25ms linear',
         willChange: 'left, top',
       }}
     />
@@ -102,12 +98,12 @@ function GazeDot({ gazeRef }) {
 }
 
 /* ── Session-complete overlay ── */
-function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain }) {
+function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain, isShortcut }) {
   return (
     <div
       style={{
         position: 'fixed', inset: 0,
-        background: 'rgba(5, 30, 20, 0.82)',
+        background: 'rgba(5, 30, 20, 0.85)',
         backdropFilter: 'blur(12px)',
         zIndex: 8000,
         display: 'flex',
@@ -119,18 +115,17 @@ function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain }) {
         padding: '2rem',
       }}
     >
-      {/* gemini badge */}
+      {/* status badge */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.7 }}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="10" fill="#1D9E75" opacity="0.4"/>
-          <path d="M12 3 L13.5 10.5 L21 12 L13.5 13.5 L12 21 L10.5 13.5 L3 12 L10.5 10.5 Z" fill="#1D9E75"/>
+          <circle cx="12" cy="12" r="10" fill={isShortcut ? '#fbbf24' : '#1D9E75'} opacity={isShortcut ? 0.8 : 0.4}/>
+          <path d="M12 3 L13.5 10.5 L21 12 L13.5 13.5 L12 21 L10.5 13.5 L3 12 L10.5 10.5 Z" fill={isShortcut ? '#fbbf24' : '#1D9E75'}/>
         </svg>
-        <span style={{ color: '#7ee8c3', fontSize: 13, letterSpacing: '0.12em', fontWeight: 600, textTransform: 'uppercase' }}>
-          Gemini Expansion
+        <span style={{ color: isShortcut ? '#fbbf24' : '#7ee8c3', fontSize: 13, letterSpacing: '0.12em', fontWeight: 600, textTransform: 'uppercase' }}>
+          {isShortcut ? 'Shortcut Expansion' : 'Gemini Expansion'}
         </span>
       </div>
 
-      {/* sentence */}
       <div style={{
         maxWidth: 720,
         background: 'rgba(255,255,255,0.06)',
@@ -143,10 +138,6 @@ function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain }) {
           <p style={{ color: '#7ee8c3', fontSize: '1.5rem', fontStyle: 'italic', animation: 'fadeIn 400ms infinite alternate' }}>
             Expanding your message…
           </p>
-        ) : sentence?.startsWith('[Rate limited') ? (
-          <p style={{ color: '#fbbf24', fontSize: '1.2rem', fontWeight: 500, lineHeight: 1.5, fontStyle: 'italic' }}>
-            ⚠️ {sentence}
-          </p>
         ) : (
           <p style={{ color: '#ffffff', fontSize: 'clamp(1.4rem, 3vw, 2.2rem)', fontWeight: 500, lineHeight: 1.45 }}>
             {sentence || '…'}
@@ -154,73 +145,47 @@ function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain }) {
         )}
       </div>
 
-      {/* action buttons */}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
-        {/* Speak Again */}
         <button
           onClick={onSpeakAgain}
           style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'rgba(29, 158, 117, 0.18)',
-            border: '2px solid rgba(29, 158, 117, 0.6)',
-            color: '#7ee8c3',
-            borderRadius: 14,
-            padding: '14px 28px',
-            fontSize: '1.05rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            letterSpacing: '0.04em',
+            background: 'rgba(29, 158, 117, 0.18)', border: '2px solid rgba(29, 158, 117, 0.6)',
+            color: '#7ee8c3', borderRadius: 14, padding: '14px 28px', fontSize: '1.05rem', fontWeight: 700,
+            cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.04em'
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(29,158,117,0.35)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(29,158,117,0.18)'; e.currentTarget.style.transform = 'scale(1)'; }}
         >
           🔊 Speak Again
         </button>
 
-        {/* Restart */}
         <button
           onClick={onRestart}
           style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            background: 'rgba(255,255,255,0.1)',
-            border: '2px solid rgba(255,255,255,0.35)',
-            color: '#ffffff',
-            borderRadius: 14,
-            padding: '14px 28px',
-            fontSize: '1.05rem',
-            fontWeight: 700,
-            cursor: 'pointer',
-            transition: 'all 0.2s',
-            letterSpacing: '0.04em',
+            background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.35)',
+            color: '#ffffff', borderRadius: 14, padding: '14px 28px', fontSize: '1.05rem', fontWeight: 700,
+            cursor: 'pointer', transition: 'all 0.2s', letterSpacing: '0.04em'
           }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
         >
-          🔁 Restart Session
+          🔁 Restart Board
         </button>
       </div>
 
       <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
-        Click a button above with your mouse to continue
+        Return to board via buttons above
       </p>
     </div>
   );
 }
 
-/* ════════════════════════════════════════════════ */
-export default function App() {
-  /* ── state ── */
+export default function DemoBoard() {
   const [wordBuffer, setWordBuffer]           = useState('');
   const [predictedSentence, setPredictedSentence] = useState('');
   const [isLoading, setIsLoading]             = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [isShortcutActive, setIsShortcutActive] = useState(false);
 
   const [isCalibrated, setIsCalibrated]       = useState(false);
   const [calibrationPhase, setCalibrationPhase] = useState('calibrating');
   const [webcamStatus, setWebcamStatus]       = useState('idle');
-  // warmupReady: true once a 2.5s delay after webcamStatus='ready' has elapsed
-  const [warmupReady, setWarmupReady]         = useState(false);
 
   const [progressMap, setProgressMap]         = useState({});
 
@@ -228,30 +193,49 @@ export default function App() {
   const llmTimerRef       = useRef(null);
   const lastRequestIdRef  = useRef(0);
 
-  /* ── LLM trigger ── */
+  /* ── Trigger Logic (Shortcuts + Gemini) ── */
   const triggerLLM = useCallback((buffer, immediate = false, onDone) => {
     clearTimeout(llmTimerRef.current);
-    const trimmed = buffer.trim();
+    const trimmed = buffer.trim().toLowerCase();
+    
+    // Check shortcuts
+    if (SHORTCUTS[trimmed]) {
+      const phrase = SHORTCUTS[trimmed];
+      setPredictedSentence(phrase);
+      speak(phrase);
+      setIsShortcutActive(true);
+      setIsLoading(false);
+      
+      if (immediate) {
+        setSessionComplete(true);
+        setProgressMap({});
+      }
+      if (onDone) onDone();
+      return;
+    }
+
+    // Default Gemini logic
+    setIsShortcutActive(false);
     if (trimmed.length < 2) return;
     const reqId = ++lastRequestIdRef.current;
+    
     const run = async () => {
       setIsLoading(true);
       const sentence = await expandToSentence(trimmed);
       if (reqId === lastRequestIdRef.current) {
         if (sentence) {
           setPredictedSentence(sentence);
-          speakSentence(sentence);
+          speak(sentence);
         }
         setIsLoading(false);
         if (onDone) onDone();
       }
     };
-    // Always run immediately for auto-terminate; debounce for previews
+    
     if (immediate) run();
     else llmTimerRef.current = setTimeout(run, 1500);
   }, []);
 
-  /* ── Dwell handling ── */
   const handleDwell = useCallback((hit) => {
     if (!isCalibrated) return;
 
@@ -259,7 +243,15 @@ export default function App() {
       const letter = hit.split('-')[1];
       setWordBuffer(prev => {
         const next = prev + letter;
+        const currentTrimmed = next.toLowerCase().trim();
         const letterCount = next.replace(/\s/g, '').length;
+        
+        // Immediate check for 'qu' shortcut
+        if (SHORTCUTS[currentTrimmed]) {
+           triggerLLM(next, true);
+           return next;
+        }
+
         if (letterCount >= AUTO_EXPAND_LETTERS) {
           setSessionComplete(true);
           triggerLLM(next, true);
@@ -298,7 +290,6 @@ export default function App() {
 
   useDwell(gazeRef, LETTER_DWELL_MS, handleDwell, handleProgress, isCalibrated && !sessionComplete);
 
-  /* ── Restart session ── */
   const handleRestart = useCallback(() => {
     window.speechSynthesis?.cancel();
     setSessionComplete(false);
@@ -308,24 +299,7 @@ export default function App() {
     setProgressMap({});
   }, []);
 
-  /* ── Speak Again ── */
-  const handleSpeakAgain = useCallback(() => {
-    speakSentence(predictedSentence);
-  }, [predictedSentence]);
-
-  /* ── WebGazer init ── */
-  useEffect(() => {
-    if (webcamStatus !== 'ready') {
-      setIsCalibrated(false);
-      setCalibrationPhase('calibrating');
-      setWarmupReady(false);
-    } else {
-      // 2.5s warm-up: let the face mesh model stabilize before showing calibration
-      const t = setTimeout(() => setWarmupReady(true), 2500);
-      return () => clearTimeout(t);
-    }
-  }, [webcamStatus]);
-
+  /* ── Sync WebGazer State (Matching App.jsx) ── */
   useEffect(() => {
     if (isCalibrated && window.webgazer) {
       if (typeof window.webgazer.removeMouseEventListeners === 'function') window.webgazer.removeMouseEventListeners();
@@ -356,31 +330,36 @@ export default function App() {
       wg = window.webgazer;
       setWebcamStatus('camera');
 
-      // Kalman filter is the only smoothing layer — no EMA stacked on top
+      const alpha = 0.12; 
       wg.setRegression('ridge')
         .setTracker('TFFacemesh')
         .applyKalmanFilter(true)
         .saveDataAcrossSessions(false)
         .setGazeListener((data) => {
           if (data) {
+            const rawX = Math.max(0, Math.min(window.innerWidth,  data.x));
+            const rawY = Math.max(0, Math.min(window.innerHeight, data.y));
+            const cx = gazeRef.current.x || rawX;
+            const cy = gazeRef.current.y || rawY;
             gazeRef.current = {
-              x: Math.max(0, Math.min(window.innerWidth,  data.x)),
-              y: Math.max(0, Math.min(window.innerHeight, data.y)),
+              x: cx + alpha * (rawX - cx),
+              y: cy + alpha * (rawY - cy),
             };
           }
         });
 
       const mt = setTimeout(() => setWebcamStatus('model'), 1200);
-      wg.begin()
-        .then(() => {
-          clearTimeout(mt);
-          setWebcamStatus('model');
-          const rc = setInterval(() => {
-            if (wg.isReady()) { setWebcamStatus('ready'); clearInterval(rc); }
-          }, 500);
-          setTimeout(() => clearInterval(rc), 30000);
-        })
-        .catch(err => { clearTimeout(mt); console.error('WebGazer failed:', err); setWebcamStatus('idle'); });
+      wg.begin().then(() => {
+        clearTimeout(mt);
+        setWebcamStatus('model');
+        const rc = setInterval(() => {
+          if (wg.isReady()) { setWebcamStatus('ready'); clearInterval(rc); }
+        }, 500);
+        setTimeout(() => clearInterval(rc), 30000);
+      }).catch(err => {
+        clearTimeout(mt);
+        setWebcamStatus('idle');
+      });
 
       wg.showVideoPreview(true);
       wg.showPredictionPoints(false);
@@ -390,95 +369,85 @@ export default function App() {
 
     return () => {
       clearInterval(interval);
-      clearTimeout(llmTimerRef.current);
       if (wg) wg.end();
       if (styleEl.parentNode) styleEl.parentNode.removeChild(styleEl);
     };
   }, []);
 
-  /* ── Render: Grid mode ── */
-  const renderGrid = () => (
-    <div className="flex-1 p-4 md:p-6 flex flex-col gap-4" style={{ animation: 'fadeIn 250ms ease-out' }}>
-      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4">
-        {['TL', 'TR', 'BL', 'BR'].map(z => (
-          <ZoneCard key={z} label={ZONES[z].label} zone={z} isHighlighted={false} dwellDuration={ZONE_DWELL_MS}>
-            <div className={`grid gap-3 w-full h-full ${ZONES[z].letters.length <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
-              {ZONES[z].letters.split('').map(ch => {
-                const id = `letter-${ch}`;
-                const dw = progressMap[id] > 0;
-                return (
-                  <div
-                    key={ch}
-                    data-dwell={id}
-                    className="flex items-center justify-center rounded-2xl bg-white border border-slate-100 shadow-sm transition-all duration-150"
-                  >
-                    <DwellRing active={dw} progress={progressMap[id] || 0}>
-                      <span className="font-bold text-slate-800" style={{ fontSize: 'clamp(2.5rem, 8vw, 5.5rem)' }}>
-                        {ch}
-                      </span>
-                    </DwellRing>
-                  </div>
-                );
-              })}
-            </div>
-          </ZoneCard>
-        ))}
-      </div>
-
-      {/* Action row */}
-      <div className="grid grid-cols-2 gap-4 shrink-0 h-20 md:h-24">
-        <ActionButton id="action-SPACE" label="SPACE" type="space"
-          isDwelling={progressMap['action-SPACE'] > 0} dwellProgress={progressMap['action-SPACE'] || 0} />
-        <ActionButton id="action-BACKSPACE" label="⌫" type="backspace"
-          isDwelling={progressMap['action-BACKSPACE'] > 0} dwellProgress={progressMap['action-BACKSPACE'] || 0} />
-      </div>
-    </div>
-  );
-
-  /* ── Letter count for TopBar ── */
-  const letterCount = wordBuffer.replace(/\s/g, '').length;
-
-  /* ── Main render ── */
   return (
-    <div className="w-screen h-screen overflow-hidden flex flex-col bg-bgAlternate font-sans text-textPrimary">
+    <div className="w-screen h-screen overflow-hidden flex flex-col bg-[#F7F4EF] text-[#1C1917]">
+      {/* Demo Header */}
+      <div className="h-14 bg-white border-b border-slate-200 px-6 flex items-center justify-between">
+         <div className="flex items-center gap-3">
+            <Link to="/" className="text-[#0F6E56] hover:text-[#1D9E75] font-bold flex items-center gap-2">
+               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+               Back
+            </Link>
+            <div className="h-4 w-px bg-slate-200 mx-1" />
+            <span className="text-[#0F6E56] text-sm font-bold">Demo: Shortcut Board</span>
+         </div>
+         <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+            Try: <span className="bg-amber-100 px-1 rounded">QU</span> for "Pizza"
+         </div>
+      </div>
+
       <TopBar
         wordBuffer={wordBuffer}
         predictedSentence={predictedSentence}
         isLoading={isLoading}
-        letterCount={letterCount}
+        letterCount={wordBuffer.replace(/\s/g, '').length}
         maxLetters={AUTO_EXPAND_LETTERS}
       />
 
-      {webcamStatus === 'ready' && warmupReady && !isCalibrated && calibrationPhase === 'calibrating' && (
+      {webcamStatus === 'ready' && !isCalibrated && calibrationPhase === 'calibrating' && (
         <CalibrationScreen onComplete={() => setCalibrationPhase('measuring')} />
       )}
       {webcamStatus === 'ready' && calibrationPhase === 'measuring' && (
         <AccuracyScreen
           gazeRef={gazeRef}
-          onRecalibrate={() => {
-            // Clear data BEFORE showing calibration so the new session starts fresh
-            if (window.webgazer) window.webgazer.clearData();
-            setWarmupReady(false);
-            setCalibrationPhase('calibrating');
-            // Brief re-warmup so the model isn't still settling from the prior session
-            setTimeout(() => setWarmupReady(true), 1500);
-          }}
+          onRecalibrate={() => { if (window.webgazer) window.webgazer.clearData(); setCalibrationPhase('calibrating'); }}
           onContinue={() => { setCalibrationPhase('done'); setIsCalibrated(true); }}
         />
       )}
 
-      {renderGrid()}
+      {/* Grid */}
+      <div className="flex-1 p-4 md:p-6 flex flex-col gap-4">
+        <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-4">
+          {['TL', 'TR', 'BL', 'BR'].map(z => (
+            <ZoneCard key={z} label={ZONES[z].label} zone={z} isHighlighted={false} dwellDuration={ZONE_DWELL_MS}>
+              <div className={`grid gap-3 w-full h-full ${ZONES[z].letters.length <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                {ZONES[z].letters.split('').map(ch => {
+                  const id = `letter-${ch}`;
+                  return (
+                    <div key={ch} data-dwell={id} className="flex items-center justify-center rounded-2xl bg-white border border-slate-100 shadow-sm">
+                      <DwellRing active={progressMap[id] > 0} progress={progressMap[id] || 0}>
+                        <span className="font-bold text-slate-800" style={{ fontSize: '3.5rem' }}>{ch}</span>
+                      </DwellRing>
+                    </div>
+                  );
+                })}
+              </div>
+            </ZoneCard>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-4 shrink-0 h-24">
+          <ActionButton id="action-SPACE" label="SPACE" type="space"
+            isDwelling={progressMap['action-SPACE'] > 0} dwellProgress={progressMap['action-SPACE'] || 0} />
+          <ActionButton id="action-BACKSPACE" label="⌫" type="backspace"
+            isDwelling={progressMap['action-BACKSPACE'] > 0} dwellProgress={progressMap['action-BACKSPACE'] || 0} />
+        </div>
+      </div>
 
       <StatusBar webcamStatus={webcamStatus} />
       {isCalibrated && <GazeDot gazeRef={gazeRef} />}
 
-      {/* Session complete overlay — shown only once Gemini has replied */}
-      {sessionComplete && predictedSentence && (
+      {sessionComplete && (
         <SessionOverlay
           sentence={predictedSentence}
           isLoading={isLoading}
+          isShortcut={isShortcutActive}
           onRestart={handleRestart}
-          onSpeakAgain={handleSpeakAgain}
+          onSpeakAgain={() => speak(predictedSentence)}
         />
       )}
     </div>

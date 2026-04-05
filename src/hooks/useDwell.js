@@ -1,11 +1,13 @@
 import { useEffect, useRef, useCallback } from 'react';
 
 const JITTER_GUARD_MS = 120; // ignore target switches shorter than this
+const COOLDOWN_MS     = 2000; // pause after a selection before accepting the next
 
 export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress, isActive = true) {
   const dwellTarget = useRef(null);
   const dwellStart = useRef(null);
   const animFrameRef = useRef(null);
+  const cooldownUntil = useRef(0); // timestamp after which new selections are accepted
 
   // Jitter guard: track when the candidate changed to a new target
   const pendingTarget = useRef(null);
@@ -34,13 +36,27 @@ export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress, isActive
       return;
     }
 
+    // ── Post-selection cooldown ───────────────────────────────
+    if (Date.now() < cooldownUntil.current) {
+      // Clear any in-progress dwell so the ring resets visually
+      if (dwellTarget.current) {
+        if (onProgress) onProgress(dwellTarget.current, 0);
+        dwellTarget.current = null;
+        dwellStart.current = null;
+      }
+      pendingTarget.current = null;
+      pendingStart.current = null;
+      animFrameRef.current = requestAnimationFrame(checkDwell);
+      return;
+    }
+
     const elements = document.querySelectorAll('[data-dwell]');
     let bestHit = null;
     let minDistance = Infinity;
 
     elements.forEach(el => {
       const rect = el.getBoundingClientRect();
-      const margin = 40; // generous hit boundary
+      const margin = 12; // tight enough to separate adjacent tiles, forgiving of edge imprecision
       if (
         gaze.x >= rect.left - margin &&
         gaze.x <= rect.right + margin &&
@@ -92,6 +108,7 @@ export function useDwell(gazeRef, dwellTime = 500, onDwell, onProgress, isActive
       if (onProgress) onProgress(hit, progress);
 
       if (elapsed >= dwellTime) {
+        cooldownUntil.current = Date.now() + COOLDOWN_MS; // start 2s cooldown
         onDwell(hit);
         dwellTarget.current = null;
         dwellStart.current = null;

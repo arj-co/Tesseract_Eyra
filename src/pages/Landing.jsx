@@ -810,11 +810,35 @@ export default function Landing() {
                     Launch Eyra
                   </Link>
                 </motion.div>
-
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4, duration: 0.5 }}
+                >
+                  <Link to="/demo" 
+                    style={{
+                      background: 'rgba(251,191,36,0.1)', border: `1.5px solid rgba(251,191,36,0.5)`, color: '#854d0e',
+                      padding: '0.85rem 2.2rem', borderRadius: 100, fontFamily: T.sans,
+                      fontSize: '0.95rem', fontWeight: 600, textDecoration: 'none',
+                      transition: 'all 0.2s ease', display: 'inline-block',
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = 'translateY(-3px)';
+                      e.currentTarget.style.background = 'rgba(251,191,36,0.2)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.background = 'rgba(251,191,36,0.1)';
+                    }}
+                  >
+                    Try Demo Board
+                  </Link>
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45, duration: 0.5 }}
                 >
                   <Link to="/how-it-works" 
                     style={{
@@ -1002,15 +1026,27 @@ export default function Landing() {
           <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem', fontWeight: 300, maxWidth: 460, margin: '0 auto 2.5rem', lineHeight: 1.7 }}>
             Whether you're a patient, a family member, or a hospital — we'd love to talk about how Eyra can help.
           </p>
-          <Link to="/app" style={{
-            background: 'white', color: T.teal, border: 'none',
-            padding: '1rem 2.8rem', borderRadius: 100, fontFamily: T.sans,
-            fontSize: '1.05rem', fontWeight: 500, textDecoration: 'none', display: 'inline-block',
-            transition: 'opacity 0.2s, transform 0.2s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
-          >Launch Eyra — it's free</Link>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link to="/app" style={{
+              background: 'white', color: T.teal, border: 'none',
+              padding: '1rem 2.8rem', borderRadius: 100, fontFamily: T.sans,
+              fontSize: '1.05rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block',
+              transition: 'opacity 0.2s, transform 0.2s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >Launch Eyra — it's free</Link>
+
+            <Link to="/demo" style={{
+              background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)',
+              padding: '1rem 2.8rem', borderRadius: 100, fontFamily: T.sans,
+              fontSize: '1.05rem', fontWeight: 600, textDecoration: 'none', display: 'inline-block',
+              transition: 'all 0.2s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >View shortcuts demo</Link>
+          </div>
         </div>
       </section>
 

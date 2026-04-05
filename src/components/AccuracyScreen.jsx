@@ -90,10 +90,10 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
   }, [phase, gazeRef]);
 
   const getAccuracyColor = (acc) => {
-    if (acc >= 70) return { text: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30', ring: 'text-emerald-500', label: 'Excellent' };
-    if (acc >= 50) return { text: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30', ring: 'text-amber-500', label: 'Good' };
-    if (acc >= 30) return { text: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30', ring: 'text-orange-500', label: 'Fair' };
-    return { text: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30', ring: 'text-red-500', label: 'Poor' };
+    if (acc >= 80) return { text: 'text-emerald-400', bg: 'bg-emerald-500/20', border: 'border-emerald-500/30', ring: 'text-emerald-500', label: 'Excellent' };
+    if (acc >= 65) return { text: 'text-amber-400', bg: 'bg-amber-500/20', border: 'border-amber-500/30', ring: 'text-amber-500', label: 'Good' };
+    if (acc >= 45) return { text: 'text-orange-400', bg: 'bg-orange-500/20', border: 'border-orange-500/30', ring: 'text-orange-500', label: 'Fair' };
+    return { text: 'text-red-400', bg: 'bg-red-500/20', border: 'border-red-500/30', ring: 'text-red-500', label: 'Needs Improvement' };
   };
 
   // --- INSTRUCTION PHASE ---

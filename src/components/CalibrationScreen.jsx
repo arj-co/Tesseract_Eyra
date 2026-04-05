@@ -12,23 +12,13 @@ const CALIBRATION_POINTS = [
   { id: 'pt9', bottom: '10%', right: '10%' },
 ];
 
-const ROUNDS = 7; // Each dot gets clicked once per round, 7 rounds total
+const ROUNDS = 5; // Each dot gets clicked 5 times as requested (9 points * 5 clicks = 45 total)
 
-/** Fisher-Yates shuffle (returns new array) */
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-/** Build the full sequence: 7 rounds × 9 shuffled dots = 63 steps */
+/** Build the full sequence: ROUNDS × 9 dots in fixed spatial order */
 function buildSequence() {
   const seq = [];
   for (let r = 0; r < ROUNDS; r++) {
-    seq.push(...shuffle(CALIBRATION_POINTS));
+    seq.push(...CALIBRATION_POINTS);
   }
   return seq;
 }
@@ -53,12 +43,22 @@ export default function CalibrationScreen({ onComplete }) {
   }, [stepIndex, sequence]);
 
   const handlePointClick = useCallback((e) => {
-    // Record the center of the calibration target for WebGazer
+    // Record where the user's pointer actually was at mousedown — this is the
+    // ground truth WebGazer needs, not the computed element centre.
     if (window.webgazer) {
-      const rect = e.currentTarget.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      window.webgazer.recordScreenPosition(centerX, centerY, 'click');
+      window.webgazer.recordScreenPosition(e.clientX, e.clientY, 'click');
+
+      // Play a subtle click for feedback
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        gain.gain.setValueAtTime(0.05, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.start(); osc.stop(ctx.currentTime + 0.1);
+      } catch(_) {}
     }
 
     const nextIndex = stepIndex + 1;
@@ -81,19 +81,22 @@ export default function CalibrationScreen({ onComplete }) {
   const isDone = stepIndex >= totalSteps;
 
   return (
-    <div className="fixed inset-0 z-40 bg-bgAlternate/95 backdrop-blur-sm flex flex-col items-center justify-center font-sans">
+    <div className="fixed inset-0 z-40 bg-bgAlternate/95 backdrop-blur-sm flex flex-col items-center justify-center font-sans tracking-tight">
       {/* Header */}
-      <div className="absolute top-10 text-center pointer-events-none px-4">
-        <h2 className="text-3xl font-serif text-deepNavy mb-2">Eye Tracking Calibration</h2>
-        <p className="text-textMuted text-lg max-w-xl mx-auto">
-          Look directly at the pulsing dot and click it. Dots appear one at a time in random order.
+      <div className="absolute top-10 text-center pointer-events-none px-4 flex flex-col items-center">
+        <h2 className="text-3xl font-serif text-deepNavy mb-2">High Precision Calibration</h2>
+        <p className="text-textMuted text-lg max-w-xl mx-auto mb-4">
+          Center your head and look at the pulsing dot. Click precisely on the center.
         </p>
+        <div className="px-4 py-1.5 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-xs font-bold uppercase tracking-widest animate-pulse">
+          Keep head steady for 80%+ accuracy
+        </div>
       </div>
 
       {/* Progress bar & round indicator */}
-      <div className="absolute top-28 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
+      <div className="absolute top-36 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
         <div className="flex items-center gap-3 text-sm text-textMuted">
-          <span>Round {Math.min(currentRound, ROUNDS)} / {ROUNDS}</span>
+          <span>Point {Math.min(currentRound, ROUNDS)} of {ROUNDS}</span>
           <span className="text-xs opacity-40">•</span>
           <span>{stepIndex} / {totalSteps} clicks</span>
         </div>
@@ -153,27 +156,34 @@ export default function CalibrationScreen({ onComplete }) {
         <div className="text-[10px] text-textMuted mt-1 text-center">Coverage</div>
       </div>
 
-      {/* Active calibration dot — only ONE dot shown at a time */}
+      {/* Active calibration dot — using original WebGazer colors (Red -> Yellow -> Green) */}
       <div className="relative w-full h-full max-w-7xl max-h-[800px]">
-        {!isDone && currentPoint && (
-          <button
-            key={`${currentPoint.id}-${stepIndex}`}
-            className="absolute flex items-center justify-center w-14 h-14 bg-medicalBlue hover:bg-vividBlue hover:scale-110 shadow-xl animate-pulse-glow cursor-pointer rounded-full transition-all duration-300"
-            style={{
-              top: currentPoint.top,
-              bottom: currentPoint.bottom,
-              left: currentPoint.left,
-              right: currentPoint.right,
-              transform: currentPoint.transform,
-              animation: 'pulse-glow 1.5s ease-in-out infinite',
-            }}
-            onClick={handlePointClick}
-          >
-            <span className="text-white font-bold text-xs opacity-70">
-              {(pointClickCounts[currentPoint.id] || 0) + 1}
-            </span>
-          </button>
-        )}
+        {!isDone && currentPoint && (() => {
+          const clicks = pointClickCounts[currentPoint.id];
+          const scale = 1 - (clicks * 0.12); // Shrink slightly as points are collected
+          let colorClass = 'bg-red-500 shadow-red-500/40';
+          if (clicks >= 4) colorClass = 'bg-emerald-500 shadow-emerald-500/40';
+          else if (clicks >= 2) colorClass = 'bg-yellow-500 shadow-yellow-500/40';
+
+          return (
+            <button
+              key={`${currentPoint.id}-${stepIndex}`}
+              className={`absolute flex items-center justify-center w-16 h-16 ${colorClass} hover:scale-105 active:scale-95 shadow-xl cursor-pointer rounded-full transition-all duration-200 border-4 border-white/30`}
+              style={{
+                top: currentPoint.top,
+                bottom: currentPoint.bottom,
+                left: currentPoint.left,
+                right: currentPoint.right,
+                transform: `${currentPoint.transform || ''} scale(${scale})`,
+              }}
+              onMouseDown={handlePointClick}
+            >
+              <div className="w-2.5 h-2.5 bg-white rounded-full" />
+              {/* Pulse effect while active */}
+              <div className={`absolute inset-[-10px] rounded-full border-2 ${colorClass.replace('bg-', 'border-').split(' ')[0]} opacity-40 animate-ping`} />
+            </button>
+          );
+        })()}
       </div>
     </div>
   );
