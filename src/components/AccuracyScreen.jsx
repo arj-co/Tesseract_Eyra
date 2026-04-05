@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const SAMPLES_NEEDED = 50;
+const SAMPLES_NEEDED = 80;
+const WARMUP_MS = 1500; // discard early samples while the smoothing filter settles
 
 /**
  * Calculates accuracy percentage using the same algorithm as the WebGazer website.
@@ -32,7 +33,8 @@ function calculatePrecision(xSamples, ySamples, targetX, targetY) {
 }
 
 export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
-  const [phase, setPhase] = useState('instruction'); // 'instruction' | 'collecting' | 'result'
+  // phase: 'instruction' | 'warming' | 'collecting' | 'result'
+  const [phase, setPhase] = useState('instruction');
   const [samplesCollected, setSamplesCollected] = useState(0);
   const [accuracy, setAccuracy] = useState(null);
   const xSamplesRef = useRef([]);
@@ -40,13 +42,20 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
   const collectionRef = useRef(null);
   const targetRef = useRef(null);
 
-  // Start collecting gaze samples
+  // Start with a warm-up delay so the smoothing filter can settle
   const startCollection = () => {
     xSamplesRef.current = [];
     ySamplesRef.current = [];
     setSamplesCollected(0);
-    setPhase('collecting');
+    setPhase('warming');
   };
+
+  // Warm-up: wait WARMUP_MS then transition to collecting
+  useEffect(() => {
+    if (phase !== 'warming') return;
+    const t = setTimeout(() => setPhase('collecting'), WARMUP_MS);
+    return () => clearTimeout(t);
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'collecting') return;
@@ -62,7 +71,6 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
 
         if (count >= SAMPLES_NEEDED) {
           clearInterval(interval);
-          // Calculate accuracy using the center of the screen as the target
           const targetX = window.innerWidth / 2;
           const targetY = window.innerHeight / 2;
           const result = calculatePrecision(
@@ -75,7 +83,7 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
           setPhase('result');
         }
       }
-    }, 60); // ~16 samples/sec, collect 50 in ~3 seconds
+    }, 50); // 20 samples/sec, collect 80 in ~4 seconds
 
     collectionRef.current = interval;
     return () => clearInterval(interval);
@@ -120,16 +128,32 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
     );
   }
 
+  // --- WARMING PHASE ---
+  if (phase === 'warming') {
+    return (
+      <div className="fixed inset-0 z-40 bg-[#0f0f12]/95 backdrop-blur-xl flex flex-col items-center justify-center font-sans">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute w-24 h-24 rounded-full border-2 border-medicalBlue/40 animate-ping" />
+          <div className="absolute w-16 h-16 rounded-full border border-medicalBlue/60 animate-pulse" />
+          <div className="w-6 h-6 rounded-full bg-medicalBlue shadow-[0_0_20px_rgba(15,110,86,0.6),0_0_60px_rgba(15,110,86,0.3)]" />
+        </div>
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center">
+          <div className="text-amber-400 text-sm mb-1 tracking-wide uppercase animate-pulse">
+            Settling… keep looking at the dot
+          </div>
+          <div className="text-gray-600 text-xs mt-2">Stabilising gaze filter…</div>
+        </div>
+      </div>
+    );
+  }
+
   // --- COLLECTING PHASE ---
   if (phase === 'collecting') {
     const progress = (samplesCollected / SAMPLES_NEEDED) * 100;
     return (
       <div className="fixed inset-0 z-40 bg-[#0f0f12]/95 backdrop-blur-xl flex flex-col items-center justify-center font-sans">
         {/* Center target dot */}
-        <div
-          ref={targetRef}
-          className="relative flex items-center justify-center"
-        >
+        <div ref={targetRef} className="relative flex items-center justify-center">
           {/* Outer ring pulse */}
           <div className="absolute w-24 h-24 rounded-full border-2 border-medicalBlue/40 animate-ping" />
           <div className="absolute w-16 h-16 rounded-full border border-medicalBlue/60 animate-pulse" />
@@ -140,7 +164,7 @@ export default function AccuracyScreen({ gazeRef, onRecalibrate, onContinue }) {
         {/* Progress indicator */}
         <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-center">
           <div className="text-gray-400 text-sm mb-3 tracking-wide uppercase">
-            Collecting samples... Look at the dot
+            Collecting samples… look at the dot
           </div>
           <div className="w-64 h-1.5 bg-white/10 rounded-full overflow-hidden">
             <div

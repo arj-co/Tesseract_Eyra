@@ -12,7 +12,7 @@ const CALIBRATION_POINTS = [
   { id: 'pt9', bottom: '10%', right: '10%' },
 ];
 
-const ROUNDS = 5; // Each dot gets clicked once per round, 5 rounds total
+const ROUNDS = 7; // Each dot gets clicked once per round, 7 rounds total
 
 /** Fisher-Yates shuffle (returns new array) */
 function shuffle(arr) {
@@ -24,7 +24,7 @@ function shuffle(arr) {
   return a;
 }
 
-/** Build the full sequence: 5 rounds × 9 shuffled dots = 45 steps */
+/** Build the full sequence: 7 rounds × 9 shuffled dots = 63 steps */
 function buildSequence() {
   const seq = [];
   for (let r = 0; r < ROUNDS; r++) {
