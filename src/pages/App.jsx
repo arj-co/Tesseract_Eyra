@@ -17,8 +17,9 @@ const ZONES = {
   BR: { label: 'U – Z', letters: 'UVWXYZ' },
 };
 
-const ZONE_DWELL_MS = 600;
+const ZONE_DWELL_MS  = 600;
 const LETTER_DWELL_MS = 1000;
+const AUTO_EXPAND_LETTERS = 5; // auto-terminate after this many letters (non-space chars)
 
 const ZONE_LETTER_COLORS = {
   TL: 'hover:bg-blue-50 hover:text-blue-900 hover:border-blue-400',
@@ -51,6 +52,18 @@ function playClickSound() {
   } catch (_) {}
 }
 
+function speakSentence(text) {
+  const synth = window.speechSynthesis;
+  if (!synth || !text) return;
+  synth.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.95;
+  utter.pitch = 1.0;
+  utter.volume = 1.0;
+  synth.speak(utter);
+}
+
+/* ── Polished gaze cursor with CSS transition ── */
 function GazeDot({ gazeRef }) {
   const dotRef = useRef(null);
   useEffect(() => {
@@ -58,74 +71,197 @@ function GazeDot({ gazeRef }) {
     const tick = () => {
       if (dotRef.current && gazeRef.current) {
         dotRef.current.style.left = `${gazeRef.current.x}px`;
-        dotRef.current.style.top = `${gazeRef.current.y}px`;
+        dotRef.current.style.top  = `${gazeRef.current.y}px`;
       }
       id = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(id);
   }, [gazeRef]);
+
   return (
     <div
       ref={dotRef}
-      className="fixed w-6 h-6 border-2 border-white rounded-full bg-medicalBlue/40 pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 shadow-lg"
+      style={{
+        position: 'fixed',
+        width: 32,
+        height: 32,
+        borderRadius: '50%',
+        background: 'rgba(15, 110, 86, 0.22)',
+        border: '2.5px solid rgba(15, 110, 86, 0.85)',
+        boxShadow: '0 0 12px 3px rgba(15,110,86,0.25)',
+        pointerEvents: 'none',
+        zIndex: 9999,
+        transform: 'translate(-50%, -50%)',
+        transition: 'left 80ms linear, top 80ms linear',
+        willChange: 'left, top',
+      }}
     />
+  );
+}
+
+/* ── Session-complete overlay ── */
+function SessionOverlay({ sentence, isLoading, onRestart, onSpeakAgain }) {
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0,
+        background: 'rgba(5, 30, 20, 0.82)',
+        backdropFilter: 'blur(12px)',
+        zIndex: 8000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 32,
+        animation: 'fadeIn 350ms ease-out',
+        padding: '2rem',
+      }}
+    >
+      {/* gemini badge */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, opacity: 0.7 }}>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <circle cx="12" cy="12" r="10" fill="#1D9E75" opacity="0.4"/>
+          <path d="M12 3 L13.5 10.5 L21 12 L13.5 13.5 L12 21 L10.5 13.5 L3 12 L10.5 10.5 Z" fill="#1D9E75"/>
+        </svg>
+        <span style={{ color: '#7ee8c3', fontSize: 13, letterSpacing: '0.12em', fontWeight: 600, textTransform: 'uppercase' }}>
+          Gemini Expansion
+        </span>
+      </div>
+
+      {/* sentence */}
+      <div style={{
+        maxWidth: 720,
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.14)',
+        borderRadius: 20,
+        padding: '2rem 2.5rem',
+        textAlign: 'center',
+      }}>
+        {isLoading ? (
+          <p style={{ color: '#7ee8c3', fontSize: '1.5rem', fontStyle: 'italic', animation: 'fadeIn 400ms infinite alternate' }}>
+            Expanding your message…
+          </p>
+        ) : sentence?.startsWith('[Rate limited') ? (
+          <p style={{ color: '#fbbf24', fontSize: '1.2rem', fontWeight: 500, lineHeight: 1.5, fontStyle: 'italic' }}>
+            ⚠️ {sentence}
+          </p>
+        ) : (
+          <p style={{ color: '#ffffff', fontSize: 'clamp(1.4rem, 3vw, 2.2rem)', fontWeight: 500, lineHeight: 1.45 }}>
+            {sentence || '…'}
+          </p>
+        )}
+      </div>
+
+      {/* action buttons */}
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {/* Speak Again */}
+        <button
+          onClick={onSpeakAgain}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(29, 158, 117, 0.18)',
+            border: '2px solid rgba(29, 158, 117, 0.6)',
+            color: '#7ee8c3',
+            borderRadius: 14,
+            padding: '14px 28px',
+            fontSize: '1.05rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            letterSpacing: '0.04em',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(29,158,117,0.35)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(29,158,117,0.18)'; e.currentTarget.style.transform = 'scale(1)'; }}
+        >
+          🔊 Speak Again
+        </button>
+
+        {/* Restart */}
+        <button
+          onClick={onRestart}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            background: 'rgba(255,255,255,0.1)',
+            border: '2px solid rgba(255,255,255,0.35)',
+            color: '#ffffff',
+            borderRadius: 14,
+            padding: '14px 28px',
+            fontSize: '1.05rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            letterSpacing: '0.04em',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.22)'; e.currentTarget.style.transform = 'scale(1.04)'; }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.transform = 'scale(1)'; }}
+        >
+          🔁 Restart Session
+        </button>
+      </div>
+
+      <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.8rem' }}>
+        Click a button above with your mouse to continue
+      </p>
+    </div>
   );
 }
 
 /* ════════════════════════════════════════════════ */
 export default function App() {
   /* ── state ── */
-  const [wordBuffer, setWordBuffer] = useState('');
+  const [wordBuffer, setWordBuffer]           = useState('');
   const [predictedSentence, setPredictedSentence] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading]             = useState(false);
+  const [sessionComplete, setSessionComplete] = useState(false);
 
-  const [isCalibrated, setIsCalibrated] = useState(false);
+  const [isCalibrated, setIsCalibrated]       = useState(false);
   const [calibrationPhase, setCalibrationPhase] = useState('calibrating');
-  const [webcamStatus, setWebcamStatus] = useState('idle');
+  const [webcamStatus, setWebcamStatus]       = useState('idle');
 
-  const [viewMode, setViewMode] = useState('overview');   // 'overview' | 'zoomed'
-  const [zoomedZone, setZoomedZone] = useState(null);     // 'TL' | 'TR' | 'BL' | 'BR'
+  const [viewMode, setViewMode]               = useState('overview');
+  const [zoomedZone, setZoomedZone]           = useState(null);
   const [highlightedQuadrant, setHighlightedQuadrant] = useState(null);
-  const [progressMap, setProgressMap] = useState({});
+  const [progressMap, setProgressMap]         = useState({});
 
-  const gazeRef = useRef({ x: 0, y: 0 });
-  const lastValidGazeRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
-  const llmTimerRef = useRef(null);
-  const lastRequestIdRef = useRef(0);
+  const gazeRef           = useRef({ x: 0, y: 0 });
+  const smoothedRef       = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+  const llmTimerRef       = useRef(null);
+  const lastRequestIdRef  = useRef(0);
 
   /* ── LLM trigger ── */
-  const triggerLLM = useCallback((buffer, immediate = false) => {
+  const triggerLLM = useCallback((buffer, immediate = false, onDone) => {
     clearTimeout(llmTimerRef.current);
     const trimmed = buffer.trim();
     if (trimmed.length < 2) return;
     const reqId = ++lastRequestIdRef.current;
-    const words = trimmed.split(/\s+/).filter(w => w.length > 0).length;
     const run = async () => {
       setIsLoading(true);
       const sentence = await expandToSentence(trimmed);
       if (reqId === lastRequestIdRef.current) {
-        if (sentence) setPredictedSentence(sentence);
+        if (sentence) {
+          setPredictedSentence(sentence);
+          speakSentence(sentence);
+        }
         setIsLoading(false);
+        if (onDone) onDone();
       }
     };
-    if (immediate || words >= 3) run();
-    else llmTimerRef.current = setTimeout(run, 2000);
+    // Always run immediately for auto-terminate; debounce for previews
+    if (immediate) run();
+    else llmTimerRef.current = setTimeout(run, 1500);
   }, []);
 
   /* ── Quadrant detection (overview mode) ── */
   useEffect(() => {
-    if (!isCalibrated || viewMode !== 'overview') return;
+    if (!isCalibrated || viewMode !== 'overview' || sessionComplete) return;
     let animId;
     let dwellQ = null;
     let dwellStart = null;
 
     const check = () => {
       const g = gazeRef.current;
-      if (!g || (g.x === 0 && g.y === 0)) {
-        animId = requestAnimationFrame(check);
-        return;
-      }
+      if (!g || (g.x === 0 && g.y === 0)) { animId = requestAnimationFrame(check); return; }
       const cx = window.innerWidth / 2;
       const cy = window.innerHeight / 2;
       const q = (g.x < cx ? (g.y < cy ? 'TL' : 'BL') : (g.y < cy ? 'TR' : 'BR'));
@@ -147,7 +283,7 @@ export default function App() {
 
     const t = setTimeout(() => { animId = requestAnimationFrame(check); }, 300);
     return () => { clearTimeout(t); if (animId) cancelAnimationFrame(animId); };
-  }, [isCalibrated, viewMode]);
+  }, [isCalibrated, viewMode, sessionComplete]);
 
   /* ── Dwell handling (zoomed mode) ── */
   const handleDwell = useCallback((hit) => {
@@ -155,17 +291,38 @@ export default function App() {
 
     if (hit.startsWith('letter-')) {
       const letter = hit.split('-')[1];
-      setWordBuffer(prev => { const n = prev + letter; triggerLLM(n); return n; });
+      setWordBuffer(prev => {
+        const next = prev + letter;
+        const letterCount = next.replace(/\s/g, '').length;
+        if (letterCount >= AUTO_EXPAND_LETTERS) {
+          // Auto-terminate: fire Gemini immediately, show overlay when response arrives
+          triggerLLM(next, true, () => setSessionComplete(true));
+          setViewMode('overview');
+          setZoomedZone(null);
+          setProgressMap({});
+        } else {
+          triggerLLM(next, false);
+          setViewMode('overview');
+          setZoomedZone(null);
+          setProgressMap({});
+        }
+        return next;
+      });
       playClickSound();
-      setViewMode('overview');
-      setZoomedZone(null);
-      setProgressMap({});
+
     } else if (hit === 'action-SPACE') {
-      setWordBuffer(prev => { triggerLLM(prev, true); return prev + ' '; });
+      setWordBuffer(prev => {
+        const next = prev + ' ';
+        // Spaces don't count toward letter total — just trigger LLM preview
+        triggerLLM(next, true);
+        return next;
+      });
       playClickSound();
+
     } else if (hit === 'action-BACKSPACE') {
       setWordBuffer(prev => prev.slice(0, -1));
       playClickSound();
+
     } else if (hit === 'action-BACK') {
       setViewMode('overview');
       setZoomedZone(null);
@@ -184,7 +341,25 @@ export default function App() {
     });
   }, [isCalibrated, viewMode]);
 
-  useDwell(gazeRef, LETTER_DWELL_MS, handleDwell, handleProgress, viewMode === 'zoomed' && isCalibrated);
+  useDwell(gazeRef, LETTER_DWELL_MS, handleDwell, handleProgress, viewMode === 'zoomed' && isCalibrated && !sessionComplete);
+
+  /* ── Restart session ── */
+  const handleRestart = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setSessionComplete(false);
+    setWordBuffer('');
+    setPredictedSentence('');
+    setIsLoading(false);
+    setViewMode('overview');
+    setZoomedZone(null);
+    setProgressMap({});
+    setHighlightedQuadrant(null);
+  }, []);
+
+  /* ── Speak Again ── */
+  const handleSpeakAgain = useCallback(() => {
+    speakSentence(predictedSentence);
+  }, [predictedSentence]);
 
   /* ── WebGazer init ── */
   useEffect(() => {
@@ -224,22 +399,24 @@ export default function App() {
       wg = window.webgazer;
       setWebcamStatus('camera');
 
+      // EMA smoothing alpha — lower = smoother/laggier, higher = more responsive
+      const EMA_ALPHA = 0.22;
+
       wg.setRegression('ridge')
         .setTracker('TFFacemesh')
         .applyKalmanFilter(true)
         .saveDataAcrossSessions(false)
         .setGazeListener((data) => {
           if (data) {
-            const curX = Math.max(0, Math.min(window.innerWidth, data.x));
-            const curY = Math.max(0, Math.min(window.innerHeight, data.y));
-            const lx = lastValidGazeRef.current.x;
-            const ly = lastValidGazeRef.current.y;
-            const dist = Math.hypot(curX - lx, curY - ly);
-            const sf = dist > 150 ? 0.3 : 0.8;
-            const sx = lx + (curX - lx) * sf;
-            const sy = ly + (curY - ly) * sf;
-            lastValidGazeRef.current = { x: sx, y: sy };
-            gazeRef.current = { x: sx, y: sy };
+            const raw = {
+              x: Math.max(0, Math.min(window.innerWidth,  data.x)),
+              y: Math.max(0, Math.min(window.innerHeight, data.y)),
+            };
+            const prev = smoothedRef.current;
+            const sx = prev.x + EMA_ALPHA * (raw.x - prev.x);
+            const sy = prev.y + EMA_ALPHA * (raw.y - prev.y);
+            smoothedRef.current  = { x: sx, y: sy };
+            gazeRef.current      = { x: sx, y: sy };
           }
         });
 
@@ -290,7 +467,7 @@ export default function App() {
 
   /* ── Render: zoomed mode ── */
   const renderZoomed = () => {
-    const zone = ZONES[zoomedZone];
+    const zone    = ZONES[zoomedZone];
     const letters = zone.letters.split('');
     const colorCls = ZONE_LETTER_COLORS[zoomedZone];
     const badgeCls = ZONE_BADGE[zoomedZone];
@@ -310,7 +487,6 @@ export default function App() {
           {letters.map((ch, i) => {
             const id = `letter-${ch}`;
             const dw = progressMap[id] > 0;
-            // Center the last row if it doesn't fill all columns
             const remaining = letters.length - i;
             const rowStart = i % cols === 0;
             const lastRowCount = letters.length % cols;
@@ -353,10 +529,19 @@ export default function App() {
     );
   };
 
+  /* ── Letter count for TopBar ── */
+  const letterCount = wordBuffer.replace(/\s/g, '').length;
+
   /* ── Main render ── */
   return (
     <div className="w-screen h-screen overflow-hidden flex flex-col bg-bgAlternate font-sans text-textPrimary">
-      <TopBar wordBuffer={wordBuffer} predictedSentence={predictedSentence} isLoading={isLoading} />
+      <TopBar
+        wordBuffer={wordBuffer}
+        predictedSentence={predictedSentence}
+        isLoading={isLoading}
+        letterCount={letterCount}
+        maxLetters={AUTO_EXPAND_LETTERS}
+      />
 
       {webcamStatus === 'ready' && !isCalibrated && calibrationPhase === 'calibrating' && (
         <CalibrationScreen onComplete={() => setCalibrationPhase('measuring')} />
@@ -373,6 +558,16 @@ export default function App() {
 
       <StatusBar webcamStatus={webcamStatus} />
       {isCalibrated && <GazeDot gazeRef={gazeRef} />}
+
+      {/* Session complete overlay */}
+      {sessionComplete && (
+        <SessionOverlay
+          sentence={predictedSentence}
+          isLoading={isLoading}
+          onRestart={handleRestart}
+          onSpeakAgain={handleSpeakAgain}
+        />
+      )}
     </div>
   );
 }
