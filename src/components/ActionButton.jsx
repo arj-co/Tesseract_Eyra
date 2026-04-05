@@ -33,9 +33,7 @@ export default function ActionButton({ label, type, id, isDwelling, dwellProgres
   return (
     <div
       data-dwell={id}
-      className={`w-full h-full rounded-xl font-bold text-center transition-all cursor-pointer ${style} ${
-        isDwelling ? 'ring-2 ring-medicalBlue/50 scale-[1.02]' : ''
-      }`}
+      className={`w-full h-full rounded-xl font-bold text-center transition-all cursor-pointer select-none bg-white border border-slate-200 shadow-sm ${style}`}
     >
       <DwellRing active={isDwelling} progress={dwellProgress}>
         <div className="w-full h-full flex items-center justify-center gap-2 text-lg md:text-xl px-3">

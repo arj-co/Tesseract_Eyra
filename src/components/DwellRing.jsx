@@ -1,49 +1,24 @@
 import React from 'react';
 
 export default function DwellRing({ active, progress, children }) {
-  // Circle geometry — use a fixed viewBox so the math is deterministic
-  const size = 100;
-  const strokeWidth = 4;
-  const radius = (size - strokeWidth) / 2; // 48
-  const circumference = 2 * Math.PI * radius; // ≈ 301.6
-  const offset = circumference - (progress / 100) * circumference;
+  // Use progress to calculate glow intensity and border opacity
+  const glowIntensity = (progress / 100) * 15;
+  const borderOpacity = 0.2 + (progress / 100) * 0.8;
+  const glowColor = `rgba(15, 110, 86, ${progress / 100})`;
 
   return (
-    <div className={`relative flex items-center justify-center w-full h-full rounded-xl transition-all ${
-      active ? 'bg-[#E1F5EE] ring-2 ring-medicalBlue scale-[1.05] z-20 shadow-md' : ''
-    }`}>
+    <div
+      className={`relative flex items-center justify-center w-full h-full rounded-xl transition-all duration-75 ${
+        active ? 'z-20 scale-[1.02]' : ''
+      }`}
+      style={active ? {
+        boxShadow: `0 0 ${glowIntensity}px ${glowIntensity / 2}px ${glowColor}`,
+        borderColor: `rgba(15, 110, 86, ${borderOpacity})`,
+        borderWidth: '2px',
+        borderStyle: 'solid',
+      } : {}}
+    >
       {children}
-      {active && (
-        <svg
-          className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
-          viewBox={`0 0 ${size} ${size}`}
-          preserveAspectRatio="none"
-        >
-          {/* Track (faint background ring) */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#0F6E56"
-            strokeWidth={strokeWidth}
-            className="opacity-15"
-          />
-          {/* Progress ring */}
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={radius}
-            fill="none"
-            stroke="#0F6E56"
-            strokeWidth={strokeWidth}
-            strokeDasharray={circumference}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            className="opacity-90 transition-[stroke-dashoffset] duration-75 ease-linear"
-          />
-        </svg>
-      )}
     </div>
   );
 }
