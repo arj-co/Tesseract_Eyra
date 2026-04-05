@@ -219,9 +219,6 @@ export default function App() {
   const [calibrationPhase, setCalibrationPhase] = useState('calibrating');
   const [webcamStatus, setWebcamStatus]       = useState('idle');
 
-  const [viewMode, setViewMode]               = useState('overview');
-  const [zoomedZone, setZoomedZone]           = useState(null);
-  const [highlightedQuadrant, setHighlightedQuadrant] = useState(null);
   const [progressMap, setProgressMap]         = useState({});
 
   const gazeRef           = useRef({ x: 0, y: 0 });
@@ -252,42 +249,9 @@ export default function App() {
     else llmTimerRef.current = setTimeout(run, 1500);
   }, []);
 
-  /* ── Quadrant detection (overview mode) ── */
-  useEffect(() => {
-    if (!isCalibrated || viewMode !== 'overview' || sessionComplete) return;
-    let animId;
-    let dwellQ = null;
-    let dwellStart = null;
-
-    const check = () => {
-      const g = gazeRef.current;
-      if (!g || (g.x === 0 && g.y === 0)) { animId = requestAnimationFrame(check); return; }
-      const cx = window.innerWidth / 2;
-      const cy = window.innerHeight / 2;
-      const q = (g.x < cx ? (g.y < cy ? 'TL' : 'BL') : (g.y < cy ? 'TR' : 'BR'));
-
-      if (q !== dwellQ) {
-        dwellQ = q;
-        dwellStart = Date.now();
-        setHighlightedQuadrant(q);
-      } else if (Date.now() - dwellStart >= ZONE_DWELL_MS) {
-        setViewMode('zoomed');
-        setZoomedZone(q);
-        setHighlightedQuadrant(null);
-        setProgressMap({});
-        playClickSound();
-        return;
-      }
-      animId = requestAnimationFrame(check);
-    };
-
-    const t = setTimeout(() => { animId = requestAnimationFrame(check); }, 300);
-    return () => { clearTimeout(t); if (animId) cancelAnimationFrame(animId); };
-  }, [isCalibrated, viewMode, sessionComplete]);
-
-  /* ── Dwell handling (zoomed mode) ── */
+  /* ── Dwell handling ── */
   const handleDwell = useCallback((hit) => {
-    if (!isCalibrated || viewMode !== 'zoomed') return;
+    if (!isCalibrated) return;
 
     if (hit.startsWith('letter-')) {
       const letter = hit.split('-')[1];
@@ -295,15 +259,11 @@ export default function App() {
         const next = prev + letter;
         const letterCount = next.replace(/\s/g, '').length;
         if (letterCount >= AUTO_EXPAND_LETTERS) {
-          // Auto-terminate: fire Gemini immediately, show overlay when response arrives
-          triggerLLM(next, true, () => setSessionComplete(true));
-          setViewMode('overview');
-          setZoomedZone(null);
+          setSessionComplete(true);
+          triggerLLM(next, true);
           setProgressMap({});
         } else {
           triggerLLM(next, false);
-          setViewMode('overview');
-          setZoomedZone(null);
           setProgressMap({});
         }
         return next;
@@ -313,7 +273,6 @@ export default function App() {
     } else if (hit === 'action-SPACE') {
       setWordBuffer(prev => {
         const next = prev + ' ';
-        // Spaces don't count toward letter total — just trigger LLM preview
         triggerLLM(next, true);
         return next;
       });
@@ -322,26 +281,20 @@ export default function App() {
     } else if (hit === 'action-BACKSPACE') {
       setWordBuffer(prev => prev.slice(0, -1));
       playClickSound();
-
-    } else if (hit === 'action-BACK') {
-      setViewMode('overview');
-      setZoomedZone(null);
-      setProgressMap({});
-      playClickSound();
     }
-  }, [isCalibrated, viewMode, triggerLLM]);
+  }, [isCalibrated, triggerLLM]);
 
   const handleProgress = useCallback((hit, progress) => {
-    if (!isCalibrated || viewMode !== 'zoomed') return;
+    if (!isCalibrated) return;
     setProgressMap(prev => {
       const cur = prev[hit] || 0;
       if (progress === 0 && !prev[hit]) return prev;
       if (progress === 0 || Math.abs(cur - progress) > 2) return { ...prev, [hit]: progress };
       return prev;
     });
-  }, [isCalibrated, viewMode]);
+  }, [isCalibrated]);
 
-  useDwell(gazeRef, LETTER_DWELL_MS, handleDwell, handleProgress, viewMode === 'zoomed' && isCalibrated && !sessionComplete);
+  useDwell(gazeRef, LETTER_DWELL_MS, handleDwell, handleProgress, isCalibrated && !sessionComplete);
 
   /* ── Restart session ── */
   const handleRestart = useCallback(() => {
@@ -446,88 +399,44 @@ export default function App() {
     };
   }, []);
 
-  /* ── Render: overview mode ── */
-  const renderOverview = () => (
-    <div className="flex-1 p-4 md:p-6 flex items-stretch" style={{ animation: 'fadeIn 250ms ease-out' }}>
-      <div className="w-full h-full grid grid-cols-2 grid-rows-2 gap-4 md:gap-6">
+  /* ── Render: Grid mode ── */
+  const renderGrid = () => (
+    <div className="flex-1 p-2 flex flex-col gap-2" style={{ animation: 'fadeIn 250ms ease-out' }}>
+      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-2">
         {['TL', 'TR', 'BL', 'BR'].map(z => (
-          <ZoneCard key={z} label={ZONES[z].label} zone={z} isHighlighted={highlightedQuadrant === z} dwellDuration={ZONE_DWELL_MS}>
-            <div className="grid grid-cols-3 gap-2 w-full opacity-50">
-              {ZONES[z].letters.split('').map(ch => (
-                <div key={ch} className="min-h-[36px] font-bold text-lg text-slate-500 flex items-center justify-center bg-slate-50 rounded-lg border border-slate-100">
-                  {ch}
-                </div>
-              ))}
+          <ZoneCard key={z} label={ZONES[z].label} zone={z} isHighlighted={false} dwellDuration={ZONE_DWELL_MS}>
+            <div className={`grid gap-2 w-full h-full ${ZONES[z].letters.length <= 6 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+              {ZONES[z].letters.split('').map(ch => {
+                const id = `letter-${ch}`;
+                const dw = progressMap[id] > 0;
+                return (
+                  <div
+                    key={ch}
+                    data-dwell={id}
+                    className="flex items-center justify-center rounded-xl bg-white border border-slate-200 shadow-sm transition-all duration-150"
+                  >
+                    <DwellRing active={dw} progress={progressMap[id] || 0}>
+                      <span className="font-bold text-slate-800" style={{ fontSize: 'clamp(2.5rem, 8vw, 6rem)' }}>
+                        {ch}
+                      </span>
+                    </DwellRing>
+                  </div>
+                );
+              })}
             </div>
           </ZoneCard>
         ))}
       </div>
+
+      {/* Action row */}
+      <div className="grid grid-cols-2 gap-2 shrink-0 h-16 md:h-20">
+        <ActionButton id="action-SPACE" label="SPACE" type="space"
+          isDwelling={progressMap['action-SPACE'] > 0} dwellProgress={progressMap['action-SPACE'] || 0} />
+        <ActionButton id="action-BACKSPACE" label="⌫" type="backspace"
+          isDwelling={progressMap['action-BACKSPACE'] > 0} dwellProgress={progressMap['action-BACKSPACE'] || 0} />
+      </div>
     </div>
   );
-
-  /* ── Render: zoomed mode ── */
-  const renderZoomed = () => {
-    const zone    = ZONES[zoomedZone];
-    const letters = zone.letters.split('');
-    const colorCls = ZONE_LETTER_COLORS[zoomedZone];
-    const badgeCls = ZONE_BADGE[zoomedZone];
-    const cols = letters.length <= 6 ? 3 : 4;
-
-    return (
-      <div className="flex-1 flex flex-col p-3 md:p-5 gap-3" style={{ animation: 'zoomIn 280ms ease-out' }}>
-        {/* Zone badge */}
-        <div className="flex items-center justify-center shrink-0">
-          <span className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-md shadow-sm ${badgeCls}`}>
-            {zone.label}
-          </span>
-        </div>
-
-        {/* Letter grid */}
-        <div className={`flex-1 grid gap-3 auto-rows-fr`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-          {letters.map((ch, i) => {
-            const id = `letter-${ch}`;
-            const dw = progressMap[id] > 0;
-            const remaining = letters.length - i;
-            const rowStart = i % cols === 0;
-            const lastRowCount = letters.length % cols;
-            const isLastRow = i >= letters.length - (lastRowCount || cols);
-            const needsOffset = isLastRow && lastRowCount > 0 && rowStart;
-            const colStart = needsOffset ? Math.floor((cols - lastRowCount) / 2) + 1 : undefined;
-
-            return (
-              <div
-                key={ch}
-                data-dwell={id}
-                className={`flex items-center justify-center rounded-2xl font-bold transition-all duration-200 cursor-pointer select-none ${
-                  dw
-                    ? 'bg-medicalBlue text-white shadow-lg scale-[1.03]'
-                    : `bg-white border border-slate-200 text-slate-800 shadow-sm hover:shadow-md hover:scale-[1.02] ${colorCls}`
-                }`}
-                style={{
-                  fontSize: 'clamp(2rem, 5vw, 4.5rem)',
-                  ...(colStart ? { gridColumnStart: colStart } : {}),
-                }}
-              >
-                <DwellRing active={dw} progress={progressMap[id] || 0}>
-                  <span className="w-full h-full flex items-center justify-center">{ch}</span>
-                </DwellRing>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Action row */}
-        <div className="grid grid-cols-3 gap-3 shrink-0" style={{ height: 'clamp(56px, 10vh, 96px)' }}>
-          <ActionButton id="action-BACK" label="← BACK" type="back"
-            isDwelling={progressMap['action-BACK'] > 0} dwellProgress={progressMap['action-BACK'] || 0} />
-          <ActionButton id="action-SPACE" label="SPACE" type="space"
-            isDwelling={progressMap['action-SPACE'] > 0} dwellProgress={progressMap['action-SPACE'] || 0} />
-          <ActionButton id="action-BACKSPACE" label="⌫" type="backspace"
-            isDwelling={progressMap['action-BACKSPACE'] > 0} dwellProgress={progressMap['action-BACKSPACE'] || 0} />
-        </div>
-      </div>
-    );
-  };
 
   /* ── Letter count for TopBar ── */
   const letterCount = wordBuffer.replace(/\s/g, '').length;
@@ -554,7 +463,7 @@ export default function App() {
         />
       )}
 
-      {viewMode === 'overview' ? renderOverview() : renderZoomed()}
+      {renderGrid()}
 
       <StatusBar webcamStatus={webcamStatus} />
       {isCalibrated && <GazeDot gazeRef={gazeRef} />}
