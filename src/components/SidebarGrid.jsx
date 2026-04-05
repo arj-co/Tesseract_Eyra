@@ -1,54 +1,53 @@
 "use client";
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
+import { useEffect, useRef } from "react";
 
-const SECTIONS = 8; // number of ticks — tune to match your page sections
-
-function Tick({ index, progress }) {
-  const total = SECTIONS;
-  const start = index / total;
-  const mid   = start + 0.5 / total;
-  const end   = (index + 1) / total;
-
-  // Raw transforms from scroll progress
-  const rawWidth = useTransform(
-    progress,
-    [start, mid, end],
-    [14, 26, 14]
-  );
-  const rawOpacity = useTransform(
-    progress,
-    [start, mid, end],
-    [0, 1, 0]
-  );
-  const rawBg = useTransform(
-    progress,
-    [start, mid, end],
-    ["#b9b4ac", "#2e7d4f", "#b9b4ac"]
-  );
-
-  // Spring-smooth the width for a springy feel
-  const width = useSpring(rawWidth, { stiffness: 200, damping: 30 });
-
-  return (
-    <motion.div
-      style={{
-        width,
-        opacity: rawOpacity,
-        backgroundColor: rawBg,
-        height: 3,
-        borderRadius: 999,
-        minWidth: 14,
-      }}
-    />
-  );
-}
+const SECTIONS = 8;
 
 export default function SidebarGrid() {
-  const { scrollYProgress } = useScroll();
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const scrollTop = window.scrollY;
+      const maxScroll = document.body.scrollHeight - window.innerHeight;
+      const progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
+
+      const ticks = el.querySelectorAll(".sidebar-tick");
+      ticks.forEach((tick, i) => {
+        const start = i / SECTIONS;
+        const mid   = start + 0.5 / SECTIONS;
+        const end   = (i + 1) / SECTIONS;
+
+        let opacity, width;
+        if (progress <= start) {
+          opacity = 0; width = 14;
+        } else if (progress <= mid) {
+          const t = (progress - start) / (mid - start);
+          opacity = t; width = 14 + t * 12;
+        } else if (progress <= end) {
+          const t = (progress - mid) / (end - mid);
+          opacity = 1 - t; width = 26 - t * 12;
+        } else {
+          opacity = 0; width = 14;
+        }
+
+        tick.style.opacity = opacity;
+        tick.style.width   = width + "px";
+        tick.style.backgroundColor = opacity > 0.5 ? "#2e7d4f" : "#b9b4ac";
+      });
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll(); // init
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
     <div
+      ref={containerRef}
       style={{
         position: "fixed",
         right: 28,
@@ -82,7 +81,19 @@ export default function SidebarGrid() {
         }}
       >
         {Array.from({ length: SECTIONS }).map((_, i) => (
-          <Tick key={i} index={i} progress={scrollYProgress} />
+          <div
+            key={i}
+            className="sidebar-tick"
+            style={{
+              width: 14,
+              height: 3,
+              borderRadius: 999,
+              minWidth: 14,
+              backgroundColor: "#b9b4ac",
+              opacity: 0,
+              willChange: "opacity, width",
+            }}
+          />
         ))}
       </div>
     </div>

@@ -1,36 +1,39 @@
 import React from 'react';
 
-export default function ZoneCard({ label, id, isZoneActive, isOtherZoneActive, isDwelling, dwellProgress, children }) {
-  const isDimmed = isOtherZoneActive && !isZoneActive;
+const ZONE_THEMES = {
+  TL: { badge: 'bg-blue-700 text-white', border: 'border-blue-400', ring: 'ring-blue-400/40', glow: 'shadow-[0_0_30px_rgba(59,130,246,0.15)]' },
+  TR: { badge: 'bg-violet-700 text-white', border: 'border-violet-400', ring: 'ring-violet-400/40', glow: 'shadow-[0_0_30px_rgba(139,92,246,0.15)]' },
+  BL: { badge: 'bg-teal-700 text-white', border: 'border-teal-400', ring: 'ring-teal-400/40', glow: 'shadow-[0_0_30px_rgba(45,212,191,0.15)]' },
+  BR: { badge: 'bg-amber-600 text-white', border: 'border-amber-400', ring: 'ring-amber-400/40', glow: 'shadow-[0_0_30px_rgba(251,191,36,0.15)]' },
+};
 
-  let theme = { bg: 'bg-white', border: 'border-slate-200', text: 'text-slate-700', badgeTheme: 'bg-slate-800 text-white', hoverBorder: 'hover:border-slate-400' };
-  if (label === 'A – F') { theme = { bg: 'bg-white', border: 'border-slate-200', text: 'text-blue-900', badgeTheme: 'bg-blue-700 text-white', hoverBorder: 'hover:border-blue-500' }; }
-  else if (label === 'G – M') { theme = { bg: 'bg-white', border: 'border-slate-200', text: 'text-violet-900', badgeTheme: 'bg-violet-700 text-white', hoverBorder: 'hover:border-violet-500' }; }
-  else if (label === 'N – T') { theme = { bg: 'bg-white', border: 'border-slate-200', text: 'text-teal-900', badgeTheme: 'bg-teal-700 text-white', hoverBorder: 'hover:border-teal-500' }; }
-  else if (label === 'U – Z') { theme = { bg: 'bg-white', border: 'border-slate-200', text: 'text-amber-900', badgeTheme: 'bg-amber-600 text-white', hoverBorder: 'hover:border-amber-500' }; }
+export default function ZoneCard({ label, zone, isHighlighted, dwellDuration = 600, children }) {
+  const theme = ZONE_THEMES[zone] || ZONE_THEMES.TL;
 
   return (
-    <div 
-      data-dwell={isZoneActive ? null : id}
-      className={`relative ${theme.bg} rounded-xl p-6 flex flex-col h-full transition-all duration-200 ease-out overflow-hidden ${
-        isZoneActive 
-          ? 'ring-4 ring-medicalBlue/30 border-2 border-medicalBlue shadow-[0_4px_20px_rgba(15,110,86,0.2)] scale-[1.02] z-10' 
-          : isDimmed 
-            ? `border border-slate-200 opacity-40 grayscale-[0.5]` 
-            : `border shadow-[0_2px_8px_rgba(0,0,0,0.04),0_0_1px_rgba(0,0,0,0.1)] cursor-pointer ${theme.border} ${theme.hoverBorder} hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]`
-      } ${isDwelling ? 'ring-2 ring-medicalBlue/50 scale-[1.01]' : ''}`}
+    <div
+      className={`relative bg-white rounded-xl p-5 flex flex-col h-full transition-all duration-200 ease-out overflow-hidden border-2 ${
+        isHighlighted
+          ? `${theme.border} ring-4 ${theme.ring} ${theme.glow} scale-[1.02] z-10`
+          : 'border-slate-200 shadow-[0_2px_8px_rgba(0,0,0,0.04),0_0_1px_rgba(0,0,0,0.1)]'
+      }`}
     >
-      {isDwelling && (
-        <div 
-          className="absolute bottom-0 left-0 h-1.5 bg-medicalBlue transition-all duration-75 ease-linear"
-          style={{ width: `${dwellProgress}%` }}
-        ></div>
+      {/* CSS-animated progress bar — restarts whenever isHighlighted becomes true */}
+      {isHighlighted && (
+        <div
+          className="absolute bottom-0 left-0 h-2 bg-medicalBlue rounded-br-xl rounded-bl-xl"
+          style={{
+            width: '100%',
+            animation: `fillProgress ${dwellDuration}ms linear forwards`,
+          }}
+        />
       )}
-      <div className={`absolute top-4 left-5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm ${theme.badgeTheme}`}>
+
+      <div className={`absolute top-4 left-5 text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm ${theme.badge}`}>
         {label}
       </div>
 
-      <div className="flex-1 mt-6 flex items-center justify-center w-full h-full">
+      <div className="flex-1 mt-8 flex items-center justify-center w-full h-full">
         {children}
       </div>
     </div>

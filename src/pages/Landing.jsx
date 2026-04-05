@@ -5,7 +5,7 @@ import Footer from '../components/Footer';
 import Mascot from '../components/Mascot';
 import FeatureSequence from '../components/FeatureSequence';
 import SidebarGrid from '../components/SidebarGrid';
-import { motion, useMotionValue, useTransform, useSpring, animate } from 'framer-motion';
+import { motion, animate } from 'framer-motion';
 import patientsImg from '../../assets/patients.png';
 
 /* ─── Google Fonts injected once ─── */
@@ -48,6 +48,11 @@ const fadeUpKeyframes = `
     0%   { opacity: 0; stroke-dashoffset: 60; }
     40%  { opacity: 0.7; }
     100% { opacity: 0; stroke-dashoffset: 0; }
+  }
+  @keyframes scrollPulse {
+    0%   { transform: scaleY(0) translateY(0); transform-origin: top; }
+    50%  { transform: scaleY(1) translateY(0); transform-origin: top; }
+    100% { transform: scaleY(1) translateY(100%); transform-origin: top; }
   }
 `;
 
@@ -259,10 +264,7 @@ function LandingBackground() {
 
 function ScrollIndicator() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 0.4 }}
-      transition={{ delay: 1.2, duration: 0.8 }}
+    <div
       style={{
         position: 'absolute',
         bottom: 40,
@@ -272,8 +274,11 @@ function ScrollIndicator() {
         flexDirection: 'column',
         alignItems: 'center',
         zIndex: 20,
+        opacity: 0,
+        animation: 'fadeInScroll 0.8s ease 1.2s forwards',
       }}
     >
+      <style>{`@keyframes fadeInScroll { to { opacity: 0.4; } }`}</style>
       <div style={{
         width: '1px',
         height: '40px',
@@ -281,26 +286,20 @@ function ScrollIndicator() {
         position: 'relative',
         overflow: 'hidden'
       }}>
-        <motion.div
-          animate={{ 
-            height: ['0%', '100%', '100%'],
-            top: ['0%', '0%', '100%']
-          }}
-          transition={{ 
-            duration: 2, 
-            repeat: Infinity, 
-            ease: "easeInOut",
-            times: [0, 0.5, 1]
-          }}
+        <div
           style={{
             position: 'absolute',
             left: 0,
+            top: 0,
             width: '100%',
+            height: '50%',
             backgroundColor: T.teal,
+            willChange: 'transform',
+            animation: 'scrollPulse 2s ease-in-out infinite',
           }}
         />
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -326,48 +325,24 @@ function GazeBeam() {
 }
 
 function SDGCard({ title, color, link, children }) {
-  const x = useMotionValue(0)
-  const y = useMotionValue(0)
-
-  const springConfig = { stiffness: 150, damping: 20, mass: 0.5 }
-  const mouseXSpring = useSpring(x, springConfig)
-  const mouseYSpring = useSpring(y, springConfig)
-
-  const rotateX = useTransform(mouseYSpring, [-300, 300], [10, -10])
-  const rotateY = useTransform(mouseXSpring, [-300, 300], [-10, 10])
-
-  function handleMouseMove(e) {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const px = e.clientX - rect.left
-    const py = e.clientY - rect.top
-
-    const mx = px - rect.width / 2
-    const my = py - rect.height / 2
-
-    x.set(mx)
-    y.set(my)
-  }
-
-  function reset() {
-    x.set(0)
-    y.set(0)
-  }
-
   return (
-    <div className="w-full h-[540px] mb-8 md:mb-0" style={{ perspective: "2000px" }}>
-      <motion.div
-        onMouseMove={handleMouseMove}
-        onMouseLeave={reset}
+    <div className="w-full h-[540px] mb-8 md:mb-0">
+      <div
         onClick={() => window.open(link, '_blank', 'noopener,noreferrer')}
         className="relative w-full h-full cursor-pointer group rounded-[40px] border-2 bg-white overflow-hidden shadow-sm"
-        whileHover={{ scale: 1.01 }}
         style={{
-          rotateX,
-          rotateY,
           borderColor: color,
           background: '#f6f3ee',
           boxShadow: '0 30px 60px -12px rgba(0,0,0,0.04)',
-          transformStyle: "preserve-3d"
+          transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        }}
+        onMouseEnter={e => {
+          e.currentTarget.style.transform = 'scale(1.01)';
+          e.currentTarget.style.boxShadow = '0 40px 80px -12px rgba(0,0,0,0.08)';
+        }}
+        onMouseLeave={e => {
+          e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.boxShadow = '0 30px 60px -12px rgba(0,0,0,0.04)';
         }}
       >
         <GridBackground />
@@ -405,7 +380,7 @@ function SDGCard({ title, color, link, children }) {
             </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -414,13 +389,12 @@ function SDGCard({ title, color, link, children }) {
 
 /* ─── Count-up number hook ─── */
 function useCountUp(target, duration = 1.6, delay = 0, inView = false) {
-  const mv = useMotionValue(0);
   const [display, setDisplay] = React.useState(0);
 
   useEffect(() => {
     if (!inView) return;
     const timer = setTimeout(() => {
-      const controls = animate(mv, target, {
+      const controls = animate(0, target, {
         duration,
         ease: [0.16, 1, 0.3, 1],
         onUpdate: (v) => setDisplay(Math.round(v)),
@@ -438,20 +412,18 @@ function StatCard({ target, prefix = '', suffix = '', label, delay = 0, fontSize
   const count = useCountUp(target, 1.6, delay, inView);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-      transition={{ duration: 0.7, delay, ease: [0.16, 1, 0.3, 1] }}
-      whileHover={{ y: -4, scale: 1.01 }}
+    <div
       style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         justifyContent: 'center', padding: '2rem 2.5rem', cursor: 'default',
         position: 'relative', flex: 1,
+        opacity: inView ? 1 : 0,
+        transform: inView ? 'translateY(0)' : 'translateY(30px)',
+        transition: `opacity 0.7s ease ${delay}s, transform 0.7s ease ${delay}s`,
       }}
     >
       {/* Number */}
-      <motion.div
-        animate={inView ? { color: T.teal } : { color: T.teal }}
+      <div
         style={{
           fontFamily: T.serif,
           fontSize,
@@ -459,18 +431,14 @@ function StatCard({ target, prefix = '', suffix = '', label, delay = 0, fontSize
           fontWeight: 400,
           letterSpacing: '-0.02em',
           marginBottom: '0.5rem',
-          transition: 'filter 0.3s',
+          color: T.teal,
         }}
-        whileHover={{ filter: 'brightness(1.2)' }}
       >
         {prefix}{target === 500000 ? count.toLocaleString('en-IN') : count}{suffix}
-      </motion.div>
+      </div>
 
       {/* Label */}
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 6 }}
-        transition={{ duration: 0.5, delay: delay + 0.2, ease: 'easeOut' }}
+      <div
         style={{
           fontSize: '0.88rem',
           color: T.inkSoft,
@@ -479,31 +447,33 @@ function StatCard({ target, prefix = '', suffix = '', label, delay = 0, fontSize
           maxWidth: 160,
           lineHeight: 1.4,
           fontFamily: T.sans,
+          opacity: inView ? 1 : 0,
+          transform: inView ? 'translateY(0)' : 'translateY(6px)',
+          transition: `opacity 0.5s ease ${delay + 0.2}s, transform 0.5s ease ${delay + 0.2}s`,
         }}
       >
         {label}
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }
 
 /* ─── Animated vertical divider ─── */
 function RevealDivider({ delay = 0, inView }) {
   return (
-    <motion.div
-      initial={{ scaleY: 0 }}
-      animate={inView ? { scaleY: 1 } : { scaleY: 0 }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    <div
+      className="md-divider"
       style={{
         width: 1,
         height: '40%',
         background: 'rgba(0,0,0,0.08)',
         alignSelf: 'center',
-        transformOrigin: 'bottom',
         flexShrink: 0,
         display: 'none',
+        transform: inView ? 'scaleY(1)' : 'scaleY(0)',
+        transformOrigin: 'bottom',
+        transition: `transform 0.6s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
       }}
-      className="md-divider"
     />
   );
 }
@@ -555,15 +525,12 @@ function MetricBand() {
             borderRadius: 20,
           }} />
 
-          {/* Background highlight sweep */}
-          <motion.div
-            animate={inView ? { x: ['−100%', '200%'] } : {}}
-            transition={{ duration: 6, repeat: Infinity, ease: 'linear', delay: 0.5 }}
+          {/* Subtle static accent */}
+          <div
             style={{
               position: 'absolute', inset: 0,
-              background: 'linear-gradient(90deg, transparent 0%, rgba(46,125,79,0.04) 50%, transparent 100%)',
+              background: 'radial-gradient(ellipse at center, rgba(46,125,79,0.03) 0%, transparent 70%)',
               pointerEvents: 'none', zIndex: 0,
-              width: '60%',
             }}
           />
 
@@ -622,26 +589,7 @@ export default function Landing() {
     }
   };
 
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const mouseXSpring = useSpring(mouseX, { stiffness: 50, damping: 20 });
-  const mouseYSpring = useSpring(mouseY, { stiffness: 50, damping: 20 });
 
-  const heroRotateX = useTransform(mouseYSpring, [-300, 300], [2, -2]);
-  const heroRotateY = useTransform(mouseXSpring, [-300, 300], [-3, 3]);
-
-  const handleHeroMouseMove = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left - rect.width / 2;
-    const y = e.clientY - rect.top - rect.height / 2;
-    mouseX.set(x);
-    mouseY.set(y);
-  };
-
-  const handleHeroMouseLeave = () => {
-    mouseX.set(0);
-    mouseY.set(0);
-  };
 
   return (
     <div style={{ fontFamily: T.sans, background: T.cream, color: T.ink, lineHeight: 1.6 }}>
@@ -656,8 +604,6 @@ export default function Landing() {
 
       {/* ── HERO — full viewport ── */}
       <section 
-        onMouseMove={handleHeroMouseMove}
-        onMouseLeave={handleHeroMouseLeave}
         style={{
           position: 'relative',
           width: '100%',
@@ -685,9 +631,7 @@ export default function Landing() {
             pointerEvents: 'none',
           }}
         >
-          <motion.div
-            animate={{ y: [4, -4, 4] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          <div
             style={{
               fontFamily: T.serif,
               fontSize: 'min(36vw, 520px)',
@@ -695,11 +639,10 @@ export default function Landing() {
               letterSpacing: '-0.02em',
               filter: 'blur(3px)',
               lineHeight: 1,
-              opacity: 1,
             }}
           >
             EYRA
-          </motion.div>
+          </div>
         </motion.div>
 
         {/* 2. Patient Illustration (Centered) */}
@@ -716,12 +659,9 @@ export default function Landing() {
             initial={{ opacity: 0, y: 30, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
+            style={{ willChange: 'opacity, transform' }}
           >
-            <motion.div
-              animate={{ y: [-6, 6, -6] }}
-              transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-              style={{ position: 'relative', rotateX: heroRotateX, rotateY: heroRotateY }}
-            >
+            <div style={{ position: 'relative' }}>
               {/* Ambient Shadow */}
               <div style={{
                 position: 'absolute',
@@ -758,7 +698,7 @@ export default function Landing() {
                   borderRadius: '32px'
                 }} 
               />
-            </motion.div>
+            </div>
           </motion.div>
         </div>
 
