@@ -82,13 +82,13 @@ export default function About() {
       {/* Hackathon Context */}
       <section className="bg-bgAlternate py-16 text-center border-t border-gray-100 mb-12">
         <div className="max-w-3xl mx-auto px-6 bg-white p-12 rounded-3xl shadow-subtle border border-gray-200">
-          <h3 className="font-serif text-3xl font-bold text-deepNavy mb-6">Built at Tesseract '26 — VIT Pune</h3>
+          <h3 className="font-serif text-3xl font-bold text-deepNavy mb-6">Built at Vishwanova '26 — VIT Pune</h3>
           <div className="flex flex-wrap justify-center gap-4 text-textMuted font-medium mb-6">
             <span className="bg-blue-50 text-medicalBlue px-4 py-2 rounded-lg border border-blue-100">Open Innovation / SDG</span>
           </div>
           <div className="text-gray-500 text-lg space-y-4">
             <p>
-              This project was conceived and prototyped entirely during the Tesseract '26 Hackathon.
+              This project was conceived and prototyped entirely during the Vishwanova '26 Hackathon.
             </p>
             <p>
               <span className="font-semibold text-textPrimary">Round 1</span> — The project is submitted to the Open Innovation track, aligned with SDG 3 (Good Health) and SDG 10 (Reduced Inequalities).

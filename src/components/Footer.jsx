@@ -7,7 +7,7 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 md:px-10 flex flex-col md:flex-row items-center justify-between w-full">
         <div className="flex flex-col mb-6 md:mb-0">
           <span className="font-serif font-bold text-2xl text-deepNavy">Eyra</span>
-          <span className="text-textMuted text-sm mt-1">Built for Tesseract '26</span>
+          <span className="text-textMuted text-sm mt-1">Built for Vishwanova '26</span>
         </div>
         
         <div className="flex items-center space-x-6 mb-6 md:mb-0 text-sm font-medium text-textMuted">
