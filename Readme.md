@@ -11,7 +11,6 @@
 </div>
 
 
-
 # Eyra — Your Eyes Are Your Voice
 
 **Eyra** is a modern, web-based Augmentative and Alternative Communication (AAC) application designed specifically for patients with ALS and severe motor disabilities. 
